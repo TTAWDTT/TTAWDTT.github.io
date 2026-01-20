@@ -21,6 +21,10 @@ const routes = {
   }
 };
 
+const docAliases = {
+  "GraphSkills": "GraphSkills"
+};
+
 const pageEls = {
   home: document.querySelector('[data-page="home"]'),
   md: document.querySelector('[data-page="md"]')
@@ -64,7 +68,10 @@ function parseRoute() {
     return { ...routes.docs, routeKey: "docs" };
   }
   if (raw.startsWith("docs/")) {
-    const slug = raw.slice(5).replace(/\.md$/, "");
+    let slug = raw.slice(5).replace(/\.md$/, "");
+    if (docAliases[slug]) {
+      slug = docAliases[slug];
+    }
     return {
       type: "md",
       routeKey: "docs",
@@ -140,6 +147,9 @@ function resolveAssetPath(assetPath, mdPath) {
   if (/^(https?:|data:|#|\/)/.test(assetPath)) {
     return assetPath;
   }
+  if (assetPath.startsWith("docs/")) {
+    return assetPath;
+  }
   const clean = assetPath.replace(/^\.\/+/, "");
   const baseDir = mdPath.split("/").slice(0, -1).join("/");
   if (mdPath.startsWith("docs/docs/")) {
@@ -154,7 +164,7 @@ function normalizeMarkdown(raw, mdPath) {
     const file = parts[0].trim();
     const alt = (parts[1] || file).trim();
     const resolved = resolveAssetPath(file, mdPath);
-    return `![${alt}](${encodeURI(resolved)})`;
+    return `![${alt}](${resolved})`;
   });
 }
 
@@ -185,8 +195,16 @@ function rewriteAssets(container, mdPath) {
       return;
     }
     const resolved = resolveAssetPath(src, mdPath);
-    img.setAttribute("src", encodeURI(resolved));
+    img.setAttribute("src", normalizeUrl(resolved));
   });
+}
+
+function normalizeUrl(url) {
+  try {
+    return encodeURI(decodeURI(url));
+  } catch (error) {
+    return encodeURI(url);
+  }
 }
 
 function extractDocLinks(markdown) {
@@ -236,11 +254,28 @@ async function hydrateHomeList() {
 }
 
 async function loadMarkdown(path) {
-  const response = await fetch(path, { cache: "no-store" });
+  const response = await fetch(encodeURI(path), { cache: "no-store" });
   if (!response.ok) {
     throw new Error(`Failed to load ${path}`);
   }
   return response.text();
+}
+
+async function loadMarkdownWithFallback(mdPath) {
+  try {
+    return { raw: await loadMarkdown(mdPath), path: mdPath };
+  } catch (error) {
+    let altPath = null;
+    if (mdPath.startsWith("docs/docs/")) {
+      altPath = mdPath.replace(/^docs\/docs\//, "docs/");
+    } else if (mdPath.startsWith("docs/")) {
+      altPath = mdPath.replace(/^docs\//, "docs/docs/");
+    }
+    if (!altPath) {
+      throw error;
+    }
+    return { raw: await loadMarkdown(altPath), path: altPath };
+  }
 }
 
 async function renderRoute() {
@@ -257,15 +292,15 @@ async function renderRoute() {
     showPage("md");
     setHeader(route);
     try {
-      const raw = await loadMarkdown(route.mdPath);
-      const normalized = normalizeMarkdown(raw, route.mdPath);
+      const { raw, path } = await loadMarkdownWithFallback(route.mdPath);
+      const normalized = normalizeMarkdown(raw, path);
       const { title: mdTitle, body } = splitTitle(normalized);
       if (mdTitle) {
         setHeader({ ...route, title: mdTitle });
       }
       contentEl.innerHTML = renderMarkdown(body);
       rewriteLinks(contentEl);
-      rewriteAssets(contentEl, route.mdPath);
+      rewriteAssets(contentEl, path);
     } catch (error) {
       window.location.hash = "#/home";
     }
