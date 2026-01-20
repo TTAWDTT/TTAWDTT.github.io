@@ -27,12 +27,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "docs/GraphSkills.md",
+                "file": "index.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "GraphSkills"
+              "title": "index"
             }
           }
         ],
@@ -109,7 +109,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "docs/GraphSkills.md",
+                "file": "index.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -119,7 +119,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "GraphSkills 的反向链接列表"
+              "title": "index 的反向链接列表"
             }
           },
           {
@@ -128,12 +128,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "docs/GraphSkills.md",
+                "file": "index.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "GraphSkills 的出链列表"
+              "title": "index 的出链列表"
             }
           },
           {
@@ -171,13 +171,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "docs/GraphSkills.md",
+                "file": "index.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "GraphSkills 的大纲"
+              "title": "index 的大纲"
             }
           }
         ]
@@ -198,15 +198,15 @@
       "bases:新建数据库": false
     }
   },
-  "active": "c2c8a3800dc01b96",
+  "active": "7a4aa60ba61b9d0e",
   "lastOpenFiles": [
     "GraphSkills.md",
-    "Pasted image 20260120235244.png",
-    "Pasted image 20260120235142.png",
+    "getting-started.md",
     "docs/getting-started.md",
     "index.md",
     "docs/GraphSkills.md",
-    "getting-started.md",
+    "Pasted image 20260120235244.png",
+    "Pasted image 20260120235142.png",
     "docs",
     "Pasted image 20260120223704.png"
   ]
