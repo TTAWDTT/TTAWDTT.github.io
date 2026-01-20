@@ -34,6 +34,7 @@ const headerEls = {
 
 const contentEl = document.getElementById("page-content");
 const navLinks = Array.from(document.querySelectorAll("[data-route]"));
+const homeListEl = document.getElementById("home-posts");
 
 function setActiveNav(routeKey) {
   navLinks.forEach((link) => {
@@ -132,6 +133,31 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;");
 }
 
+function resolveAssetPath(assetPath, mdPath) {
+  if (!assetPath) {
+    return assetPath;
+  }
+  if (/^(https?:|data:|#|\/)/.test(assetPath)) {
+    return assetPath;
+  }
+  const clean = assetPath.replace(/^\.\/+/, "");
+  const baseDir = mdPath.split("/").slice(0, -1).join("/");
+  if (mdPath.startsWith("docs/docs/")) {
+    return `docs/${clean}`;
+  }
+  return baseDir ? `${baseDir}/${clean}` : clean;
+}
+
+function normalizeMarkdown(raw, mdPath) {
+  return raw.replace(/!\[\[([^\]]+)\]\]/g, (match, inner) => {
+    const parts = inner.split("|");
+    const file = parts[0].trim();
+    const alt = (parts[1] || file).trim();
+    const resolved = resolveAssetPath(file, mdPath);
+    return `![${alt}](${encodeURI(resolved)})`;
+  });
+}
+
 function rewriteLinks(container) {
   const links = Array.from(container.querySelectorAll("a[href]"));
   links.forEach((link) => {
@@ -149,6 +175,64 @@ function rewriteLinks(container) {
       link.setAttribute("rel", "noopener");
     }
   });
+}
+
+function rewriteAssets(container, mdPath) {
+  const images = Array.from(container.querySelectorAll("img[src]"));
+  images.forEach((img) => {
+    const src = img.getAttribute("src");
+    if (!src || /^(https?:|data:|#|\/)/.test(src)) {
+      return;
+    }
+    const resolved = resolveAssetPath(src, mdPath);
+    img.setAttribute("src", encodeURI(resolved));
+  });
+}
+
+function extractDocLinks(markdown) {
+  const links = [];
+  const regex = /\[([^\]]+)\]\(([^)]+\.md)\)/g;
+  let match = regex.exec(markdown);
+  while (match) {
+    links.push({ text: match[1].trim(), href: match[2].trim() });
+    match = regex.exec(markdown);
+  }
+  return links;
+}
+
+function toDocRoute(href) {
+  const clean = href
+    .replace(/^\.?\//, "")
+    .replace(/^docs\//, "")
+    .replace(/\.md$/, "");
+  return `#/docs/${clean}`;
+}
+
+async function hydrateHomeList() {
+  if (!homeListEl) {
+    return;
+  }
+  try {
+    const raw = await loadMarkdown("docs/index.md");
+    const normalized = normalizeMarkdown(raw, "docs/index.md");
+    const links = extractDocLinks(normalized)
+      .filter((item) => item.href.includes(".md"))
+      .map((item) => ({
+        text: item.text || "未命名",
+        href: toDocRoute(item.href)
+      }));
+    if (!links.length) {
+      return;
+    }
+    homeListEl.innerHTML = links
+      .map(
+        (item) =>
+          `<li><a href="${item.href}">${escapeHtml(item.text)}</a></li>`
+      )
+      .join("");
+  } catch (error) {
+    // Keep the static list if docs index cannot be loaded.
+  }
 }
 
 async function loadMarkdown(path) {
@@ -174,12 +258,14 @@ async function renderRoute() {
     setHeader(route);
     try {
       const raw = await loadMarkdown(route.mdPath);
-      const { title: mdTitle, body } = splitTitle(raw);
+      const normalized = normalizeMarkdown(raw, route.mdPath);
+      const { title: mdTitle, body } = splitTitle(normalized);
       if (mdTitle) {
         setHeader({ ...route, title: mdTitle });
       }
       contentEl.innerHTML = renderMarkdown(body);
       rewriteLinks(contentEl);
+      rewriteAssets(contentEl, route.mdPath);
     } catch (error) {
       window.location.hash = "#/home";
     }
@@ -189,4 +275,7 @@ async function renderRoute() {
 
 initMarked();
 window.addEventListener("hashchange", renderRoute);
-window.addEventListener("DOMContentLoaded", renderRoute);
+window.addEventListener("DOMContentLoaded", () => {
+  hydrateHomeList();
+  renderRoute();
+});
