@@ -97,27 +97,26 @@ code {
 
 
 .site-main {
-  max-width: var(--max-width);
+  max-width: 960px;
   margin: 0 auto;
-  padding: 64px clamp(20px, 5vw, 40px) 80px;
+  padding: 72px clamp(20px, 5vw, 40px) 80px;
 }
 
 .page {
   display: none;
-  animation: fadeUp 0.6s ease forwards;
 }
 
 .page.active {
   display: block;
 }
 
-.hero {
-  max-width: 720px;
+.intro {
+  max-width: 640px;
 }
 
-.hero-text h1 {
+.intro h1 {
   font-family: var(--font-display);
-  font-size: clamp(2.4rem, 4vw, 3.6rem);
+  font-size: clamp(2.4rem, 4vw, 3.4rem);
   margin: 12px 0 16px;
   letter-spacing: -0.02em;
 }
@@ -176,8 +175,42 @@ code {
 }
 
 .btn:hover {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   box-shadow: var(--shadow-soft);
+}
+
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 36px 0;
+}
+
+.home-links h2 {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  margin: 0 0 12px;
+}
+
+.home-links ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.home-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.home-links a::after {
+  content: "→";
+  color: var(--accent);
+  font-weight: 600;
 }
 
 
@@ -263,37 +296,11 @@ code {
 }
 
 
-.not-found {
-  display: flex;
-  justify-content: center;
-}
-
-.not-found-card {
-  text-align: center;
-  padding: 40px;
-  border-radius: 16px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  box-shadow: none;
-  max-width: 520px;
-}
-
 .site-footer {
   padding: 24px;
   text-align: center;
   color: var(--muted);
   font-size: 0.9rem;
-}
-
-@keyframes fadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(16px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 @media (max-width: 900px) {

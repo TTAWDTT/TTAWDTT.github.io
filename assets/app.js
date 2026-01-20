@@ -23,8 +23,7 @@ const routes = {
 
 const pageEls = {
   home: document.querySelector('[data-page="home"]'),
-  md: document.querySelector('[data-page="md"]'),
-  notFound: document.querySelector('[data-page="not-found"]')
+  md: document.querySelector('[data-page="md"]')
 };
 
 const headerEls = {
@@ -74,7 +73,7 @@ function parseRoute() {
       mdPath: `docs/${slug}.md`
     };
   }
-  return { type: "not-found", routeKey: "not-found" };
+  return { ...routes.home, routeKey: "home" };
 }
 
 function slugToTitle(slug) {
@@ -182,14 +181,10 @@ async function renderRoute() {
       contentEl.innerHTML = renderMarkdown(body);
       rewriteLinks(contentEl);
     } catch (error) {
-      showPage("not-found");
-      document.title = "TTAWDTT | 页面不存在";
+      window.location.hash = "#/home";
     }
     return;
   }
-
-  showPage("not-found");
-  document.title = "TTAWDTT | 页面不存在";
 }
 
 initMarked();
