@@ -121,7 +121,8 @@ function initMarked() {
   if (window.marked && typeof window.marked.setOptions === "function") {
     window.marked.setOptions({
       mangle: false,
-      headerIds: true
+      headerIds: true,
+      breaks: true
     });
   }
 }
@@ -159,13 +160,26 @@ function resolveAssetPath(assetPath, mdPath) {
 }
 
 function normalizeMarkdown(raw, mdPath) {
-  return raw.replace(/!\[\[([^\]]+)\]\]/g, (match, inner) => {
+  let output = raw.replace(/!\[\[([^\]]+)\]\]/g, (match, inner) => {
     const parts = inner.split("|");
     const file = parts[0].trim();
     const alt = (parts[1] || file).trim();
     const resolved = resolveAssetPath(file, mdPath);
-    return `![${alt}](${resolved})`;
+    return `![${alt}](${normalizeUrl(resolved)})`;
   });
+  output = output.replace(/(^|[^!])\[\[([^\]]+)\]\]/g, (match, prefix, inner) => {
+    const parts = inner.split("|");
+    const target = parts[0].trim();
+    const text = (parts[1] || target).trim();
+    const file = target.split("#")[0].trim();
+    if (!file) {
+      return match;
+    }
+    const hasExt = /\.[a-z0-9]+$/i.test(file);
+    const href = hasExt ? file : `docs/${file}.md`;
+    return `${prefix}[${text}](${href})`;
+  });
+  return output;
 }
 
 function rewriteLinks(container) {
@@ -195,7 +209,9 @@ function rewriteAssets(container, mdPath) {
       return;
     }
     const resolved = resolveAssetPath(src, mdPath);
-    img.setAttribute("src", normalizeUrl(resolved));
+    const normalized = normalizeUrl(resolved);
+    img.setAttribute("src", normalized);
+    attachImageFallback(img, normalized, mdPath);
   });
 }
 
@@ -205,6 +221,40 @@ function normalizeUrl(url) {
   } catch (error) {
     return encodeURI(url);
   }
+}
+
+function attachImageFallback(img, src, mdPath) {
+  const fallbacks = buildImageFallbacks(src, mdPath);
+  if (!fallbacks.length) {
+    return;
+  }
+  let index = 0;
+  const handler = () => {
+    if (index >= fallbacks.length) {
+      img.removeEventListener("error", handler);
+      return;
+    }
+    const next = fallbacks[index];
+    index += 1;
+    img.setAttribute("src", next);
+  };
+  img.addEventListener("error", handler);
+}
+
+function buildImageFallbacks(src, mdPath) {
+  const basename = src.split("/").pop();
+  if (!basename) {
+    return [];
+  }
+  const candidates = [];
+  if (mdPath.startsWith("docs/docs/")) {
+    candidates.push(`docs/${basename}`);
+  } else if (mdPath.startsWith("docs/")) {
+    candidates.push(`docs/docs/${basename}`);
+  }
+  candidates.push(`docs/${basename}`);
+  candidates.push(`docs/images/${basename}`);
+  return Array.from(new Set(candidates.map(normalizeUrl))).filter((item) => item !== src);
 }
 
 function extractDocLinks(markdown) {
