@@ -151,7 +151,7 @@ function resolveAssetPath(assetPath, mdPath) {
   if (/^(https?:|data:|#|\/)/.test(assetPath)) {
     return assetPath;
   }
-  if (assetPath.startsWith("docs/")) {
+  if (assetPath.startsWith("docs/") || assetPath.startsWith("content/")) {
     return assetPath;
   }
   const clean = assetPath.replace(/^\.\/+/, "");
@@ -254,7 +254,12 @@ function buildImageFallbacks(src, mdPath) {
     candidates.push(`docs/${basename}`);
   } else if (mdPath.startsWith("docs/")) {
     candidates.push(`docs/docs/${basename}`);
+  } else if (mdPath.startsWith("content/")) {
+    candidates.push(`content/${basename}`);
+    candidates.push(`content/images/${basename}`);
   }
+  candidates.push(`content/${basename}`);
+  candidates.push(`content/images/${basename}`);
   candidates.push(`docs/${basename}`);
   candidates.push(`docs/images/${basename}`);
   return Array.from(new Set(candidates.map(normalizeUrl))).filter((item) => item !== src);
