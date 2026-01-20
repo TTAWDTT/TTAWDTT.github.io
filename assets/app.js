@@ -119,10 +119,13 @@ function splitTitle(markdown) {
 
 function initMarked() {
   if (window.marked && typeof window.marked.setOptions === "function") {
+    const renderer = new window.marked.Renderer();
+    renderer.br = () => "<br><br>";
     window.marked.setOptions({
       mangle: false,
       headerIds: true,
-      breaks: true
+      breaks: true,
+      renderer
     });
   }
 }
