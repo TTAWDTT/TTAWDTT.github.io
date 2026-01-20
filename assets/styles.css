@@ -270,9 +270,19 @@ a:focus-visible {
   border: none;
   padding: 0;
   box-shadow: none;
-  line-height: 1.75;
+  line-height: 1.85;
   font-size: 1rem;
   max-width: 760px;
+}
+
+.prose p {
+  margin: 0 0 1.3em;
+}
+
+.prose br {
+  display: block;
+  content: "";
+  margin-top: 0.7em;
 }
 
 .prose h1,
