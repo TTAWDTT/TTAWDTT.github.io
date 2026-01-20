@@ -1,15 +1,15 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#f6f1ea">
     <meta name="color-scheme" content="light">
-    <title>TTAWDTT | GitHub Pages</title>
+    <title>TTAWDTT | 个人网站</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-      href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     >
     <link rel="stylesheet" href="assets/styles.css">
@@ -23,120 +23,61 @@
     </div>
 
     <header class="site-header">
-      <a class="brand" href="#/home" aria-label="Go to home">TTAWDTT</a>
-      <nav class="site-nav" aria-label="Main navigation">
-        <a href="#/home" data-route="home">Home</a>
-        <a href="#/about" data-route="about">About</a>
-        <a href="#/docs" data-route="docs">Docs</a>
+      <a class="brand" href="#/home" aria-label="返回首页">TTAWDTT</a>
+      <nav class="site-nav" aria-label="主导航">
+        <a href="#/home" data-route="home">首页</a>
+        <a href="#/about" data-route="about">关于</a>
+        <a href="#/docs" data-route="docs">文章</a>
       </nav>
-      <div class="nav-actions">
-        <a class="btn ghost" href="#/docs">Start reading</a>
-      </div>
     </header>
 
     <main class="site-main">
       <section class="page home-page" data-page="home">
         <div class="hero">
           <div class="hero-text">
-            <p class="eyebrow">Static. Polished. Personal.</p>
-            <h1>Make every markdown page feel like a product launch.</h1>
-            <p class="lead">
-              This template gives your GitHub Pages site a HeroUI-inspired look,
-              with a clean content system built around markdown files.
-            </p>
+            <p class="eyebrow">个人网站</p>
+            <h1>记录我的想法、项目与文章。</h1>
+            <p class="lead">这里是我持续更新的写作空间。</p>
             <div class="hero-actions">
-              <a class="btn primary" href="#/about">Meet the author</a>
-              <a class="btn ghost" href="#/docs">Browse docs</a>
-            </div>
-            <div class="hero-metrics">
-              <div class="metric">
-                <span class="metric-value">100%</span>
-                <span class="metric-label">static hosting</span>
-              </div>
-              <div class="metric">
-                <span class="metric-value">0</span>
-                <span class="metric-label">build steps</span>
-              </div>
-              <div class="metric">
-                <span class="metric-value">MD</span>
-                <span class="metric-label">content first</span>
-              </div>
+              <a class="btn primary" href="#/about">关于我</a>
+              <a class="btn ghost" href="#/docs">阅读文章</a>
             </div>
           </div>
-          <div class="hero-panel">
-            <div class="panel-card">
-              <p class="panel-title">Quick Start</p>
-              <ol class="panel-list">
-                <li>Edit <code>content/aboutme.md</code></li>
-                <li>Add docs in <code>docs/*.md</code></li>
-                <li>Update <code>docs/index.md</code></li>
-              </ol>
-              <a class="btn tiny" href="#/docs">Open docs</a>
-            </div>
-            <div class="panel-card accent">
-              <p class="panel-title">Everything is local</p>
-              <p class="panel-copy">
-                No framework. No build pipeline. Just HTML, CSS, and a tiny
-                markdown renderer.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div class="feature-grid">
-          <div class="feature-card" style="--delay: 0ms;">
-            <h3>HeroUI-inspired layout</h3>
-            <p>Soft gradients, glass surfaces, and bold typography.</p>
-          </div>
-          <div class="feature-card" style="--delay: 80ms;">
-            <h3>Markdown everywhere</h3>
-            <p>Write in MD, render instantly with no build step.</p>
-          </div>
-          <div class="feature-card" style="--delay: 160ms;">
-            <h3>Docs routing</h3>
-            <p>Each doc lives at <code>#/docs/your-slug</code>.</p>
-          </div>
-          <div class="feature-card" style="--delay: 240ms;">
-            <h3>Mobile ready</h3>
-            <p>Layout scales smoothly on phones and tablets.</p>
+          <div class="hero-card">
+            <p class="card-title">近期文章</p>
+            <ul class="card-list">
+              <li><a href="#/docs/getting-started">开始写作</a></li>
+              <li><a href="#/docs/design-notes">设计札记</a></li>
+            </ul>
+            <a class="btn tiny" href="#/docs">查看全部</a>
           </div>
         </div>
       </section>
 
       <section class="page md-page" data-page="md">
         <div class="content-header">
-          <p class="eyebrow" id="page-eyebrow">Content</p>
-          <h1 id="page-title">Loading...</h1>
+          <p class="eyebrow" id="page-eyebrow">文章</p>
+          <h1 id="page-title">加载中...</h1>
           <p class="subtitle" id="page-subtitle"></p>
         </div>
         <article class="prose" id="page-content"></article>
-        <div class="content-footer">
-          <div class="callout">
-            <p>
-              Tip: Use a top-level <code># Title</code> in each markdown file to
-              control the page heading automatically.
-            </p>
-          </div>
-        </div>
       </section>
 
       <section class="page not-found" data-page="not-found">
         <div class="not-found-card">
           <p class="eyebrow">404</p>
-          <h1>Page not found</h1>
-          <p class="lead">The page you requested is missing or the file path is wrong.</p>
-          <a class="btn primary" href="#/home">Return home</a>
+          <h1>页面不存在</h1>
+          <p class="lead">你访问的页面不存在或路径有误。</p>
+          <a class="btn primary" href="#/home">返回首页</a>
         </div>
       </section>
     </main>
 
     <footer class="site-footer">
-      <p>Built for GitHub Pages. Edit markdown, refresh, done.</p>
+      <p>© TTAWDTT</p>
     </footer>
 
-    <noscript>
-      This site requires JavaScript to render markdown content.
-    </noscript>
+    <noscript>此页面需要启用 JavaScript 才能渲染内容。</noscript>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="assets/app.js"></script>
   </body>

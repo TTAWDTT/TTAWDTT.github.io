@@ -1,10 +1,10 @@
-# Design Notes
-This template leans into a warm, editorial feel with soft gradients and glassy cards.
+# 设计札记
+记录一些关于审美与体验的小结。
 
-## Visual pillars
-- Warm ivory background with layered orbs
-- Bold display font paired with calm body text
-- Generous spacing to keep articles breathable
+## 视觉偏好
+- 色彩不过度张扬，但要有记忆点
+- 字体需要清晰、有呼吸感
+- 留白是节奏，不是空洞
 
-## Layout
-The navigation uses hash-based routes so GitHub Pages can serve everything as static files.
+## 体验线索
+好的页面能让读者在第一眼就知道重点在哪里。

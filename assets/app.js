@@ -1,22 +1,22 @@
 const routes = {
   home: {
     type: "home",
-    title: "Home",
-    eyebrow: "Home",
-    subtitle: "A HeroUI-inspired template for GitHub Pages."
+    title: "首页",
+    eyebrow: "首页",
+    subtitle: ""
   },
   about: {
     type: "md",
-    title: "About Me",
-    eyebrow: "About",
-    subtitle: "Personal profile and background.",
+    title: "关于我",
+    eyebrow: "关于",
+    subtitle: "自我介绍",
     mdPath: "content/aboutme.md"
   },
   docs: {
     type: "md",
-    title: "Docs",
-    eyebrow: "Docs",
-    subtitle: "Guides and long-form writing.",
+    title: "文章",
+    eyebrow: "文章",
+    subtitle: "写作与思考",
     mdPath: "docs/index.md"
   }
 };
@@ -69,8 +69,8 @@ function parseRoute() {
       type: "md",
       routeKey: "docs",
       title: slugToTitle(slug),
-      eyebrow: "Docs",
-      subtitle: "Reading mode",
+      eyebrow: "文章",
+      subtitle: "",
       mdPath: `docs/${slug}.md`
     };
   }
@@ -166,7 +166,7 @@ async function renderRoute() {
 
   if (route.type === "home") {
     showPage("home");
-    document.title = "TTAWDTT | Home";
+    document.title = "TTAWDTT | 首页";
     return;
   }
 
@@ -183,13 +183,13 @@ async function renderRoute() {
       rewriteLinks(contentEl);
     } catch (error) {
       showPage("not-found");
-      document.title = "TTAWDTT | Not found";
+      document.title = "TTAWDTT | 页面不存在";
     }
     return;
   }
 
   showPage("not-found");
-  document.title = "TTAWDTT | Not found";
+  document.title = "TTAWDTT | 页面不存在";
 }
 
 initMarked();

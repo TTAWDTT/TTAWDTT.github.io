@@ -1,14 +1,11 @@
-# About Me
-I am a builder focused on clean interfaces, clear writing, and thoughtful systems.
-This page is where I share my background, values, and the kinds of problems I enjoy.
+# 关于我
+我专注于把想法落地成清晰、可用的内容与产品。
+这里会记录我的经历、价值观，以及我正在探索的方向。
 
-## Focus Areas
-- Product design with a developer mindset
-- Calm, readable documentation
-- Practical automation that removes friction
+## 关注方向
+- 设计与工程的交叉实践
+- 有温度、易阅读的文字表达
+- 让流程更顺畅的自动化
 
-## Working Style
-I like to turn messy ideas into structured outcomes. If a problem can be simplified,
-I will chase the smallest, most elegant solution that still feels bold.
-
-> Replace this content with your own bio. Keep the first heading as the page title.
+## 工作方式
+我喜欢把复杂问题拆解成简单步骤，持续寻找更优雅的解决方案。

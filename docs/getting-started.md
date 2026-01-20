@@ -1,14 +1,10 @@
-# Getting Started
-This page is a sample article. Replace it with your own content.
+# 开始写作
+写作是整理自己思绪的一种方式，也是把灵感留住的过程。
 
-## File structure
-- `index.html` controls the layout.
-- `assets/styles.css` controls the visual style.
-- `assets/app.js` handles markdown loading.
-- `content/aboutme.md` is your About page.
-- `docs/*.md` are your docs pages.
+## 为什么写作
+- 让思考变得更清晰
+- 记录当下的感受与判断
+- 给未来的自己留下线索
 
-## Writing tips
-Use clear headings, short paragraphs, and callouts for emphasis.
-
-> Markdown links to other docs can be written like `[Title](docs/your-file.md)`.
+## 给自己的提示
+每次只写一件事，把它讲完整，就已经很棒了。
