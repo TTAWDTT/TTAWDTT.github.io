@@ -197,12 +197,7 @@ function resizeSnow() {
 function createFlake() {
   const size = 1.4 + Math.random() * 3.6;
   const shapeRoll = Math.random();
-  let shape = "dot";
-  if (shapeRoll > 0.7) {
-    shape = "star";
-  } else if (shapeRoll > 0.35) {
-    shape = "diamond";
-  }
+  const shape = shapeRoll > 0.55 ? "star" : "dot";
   return {
     x: Math.random() * window.innerWidth,
     y: Math.random() * window.innerHeight,
@@ -241,26 +236,22 @@ function stepSnow(timestamp) {
       flake.x = width + 10;
     }
     ctx.globalAlpha = flake.opacity;
-    if (flake.shape === "diamond") {
-      ctx.save();
-      ctx.translate(flake.x, flake.y);
-      ctx.rotate(flake.rotation);
-      ctx.beginPath();
-      ctx.rect(-flake.r * 0.6, -flake.r * 0.6, flake.r * 1.2, flake.r * 1.2);
-      ctx.fill();
-      ctx.restore();
-    } else if (flake.shape === "star") {
+    if (flake.shape === "star") {
       ctx.save();
       ctx.translate(flake.x, flake.y);
       ctx.rotate(flake.rotation);
       ctx.strokeStyle = snowState.color;
-      ctx.lineWidth = Math.max(1, flake.r * 0.2);
+      ctx.lineWidth = Math.max(1, flake.r * 0.18);
       ctx.lineCap = "round";
       ctx.beginPath();
       ctx.moveTo(-flake.r, 0);
       ctx.lineTo(flake.r, 0);
       ctx.moveTo(0, -flake.r);
       ctx.lineTo(0, flake.r);
+      ctx.moveTo(-flake.r * 0.7, -flake.r * 0.7);
+      ctx.lineTo(flake.r * 0.7, flake.r * 0.7);
+      ctx.moveTo(-flake.r * 0.7, flake.r * 0.7);
+      ctx.lineTo(flake.r * 0.7, -flake.r * 0.7);
       ctx.stroke();
       ctx.restore();
     } else {
