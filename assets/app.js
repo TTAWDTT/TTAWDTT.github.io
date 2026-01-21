@@ -498,6 +498,11 @@ function resizeSnow() {
   const dpr = window.devicePixelRatio || 1;
   const width = window.innerWidth;
   const height = window.innerHeight;
+  const ctx = snowCanvas.getContext("2d");
+  if (!ctx) {
+    return;
+  }
+  snowState.ctx = ctx;
   snowCanvas.width = Math.floor(width * dpr);
   snowCanvas.height = Math.floor(height * dpr);
   snowCanvas.style.width = `${width}px`;
@@ -549,8 +554,12 @@ function resetAtmosphereParticles() {
 }
 
 function startAtmosphere() {
-  if (!snowState || snowState.rafId) {
+  if (!snowState) {
     return;
+  }
+  if (snowState.rafId) {
+    cancelAnimationFrame(snowState.rafId);
+    snowState.rafId = null;
   }
   snowState.lastTime = 0;
   snowState.rafId = requestAnimationFrame(stepSnow);
@@ -595,7 +604,8 @@ function applyAtmosphere(mode) {
     return;
   }
   snowCanvas.style.display = "block";
-  resetAtmosphereParticles();
+  stopAtmosphere();
+  resizeSnow();
   startAtmosphere();
 }
 
