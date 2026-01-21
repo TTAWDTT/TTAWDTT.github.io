@@ -470,7 +470,7 @@ function initSnow() {
     height: 0,
     flakes: [],
     color: getAtmosphereColor("snow"),
-    lastTime: 0,
+    lastTime: null,
     mode: "snow",
     rafId: null,
     frameInterval: reducedMotion ? 1000 / 18 : 1000 / 30,
@@ -561,7 +561,7 @@ function startAtmosphere() {
     cancelAnimationFrame(snowState.rafId);
     snowState.rafId = null;
   }
-  snowState.lastTime = 0;
+  snowState.lastTime = null;
   snowState.rafId = requestAnimationFrame(stepSnow);
 }
 
@@ -628,7 +628,10 @@ function stepSnow(timestamp) {
     stopAtmosphere();
     return;
   }
-  const delta = snowState.lastTime ? timestamp - snowState.lastTime : 16;
+  if (snowState.lastTime === null) {
+    snowState.lastTime = timestamp;
+  }
+  const delta = timestamp - snowState.lastTime;
   if (delta < snowState.frameInterval) {
     snowState.rafId = requestAnimationFrame(stepSnow);
     return;
