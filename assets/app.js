@@ -321,116 +321,6 @@ function extractDocLinksFromMarkdown(markdown) {
   return Array.from(links);
 }
 
-async function loadDocsManifest() {
-  try {
-    const data = await loadJson("docs/manifest.json");
-    return normalizeDocsManifest(data);
-  } catch (error) {
-    return [];
-  }
-}
-
-function normalizeDocsManifest(data) {
-  if (!data) {
-    return [];
-  }
-  let items = [];
-  if (Array.isArray(data)) {
-    items = data;
-  } else if (Array.isArray(data.items)) {
-    items = data.items;
-  } else if (Array.isArray(data.files)) {
-    items = data.files;
-  } else if (Array.isArray(data.docs)) {
-    items = data.docs;
-  }
-  return items
-    .map((item) => {
-      if (!item) {
-        return null;
-      }
-      if (typeof item === "string") {
-        const path = normalizeDocLink(item);
-        return path ? { path } : null;
-      }
-      const rawPath = item.path || item.file || item.href || "";
-      const slug = item.slug || "";
-      const resolved = rawPath ? normalizeDocLink(rawPath) : slug ? normalizeDocLink(slug) : null;
-      if (!resolved) {
-        return null;
-      }
-      const modifiedAt = item.modifiedAt || item.updatedAt || item.mtime || "";
-      const modifiedMs = modifiedAt ? Date.parse(modifiedAt) : item.modifiedMs || item.mtimeMs || null;
-      return {
-        path: resolved,
-        title: item.title || "",
-        order: Number(item.order) || 0,
-        modifiedMs: Number.isFinite(modifiedMs) ? modifiedMs : null
-      };
-    })
-    .filter(Boolean)
-    .reduce((acc, item) => {
-      if (!acc.some((entry) => entry.path === item.path)) {
-        acc.push(item);
-      }
-      return acc;
-    }, []);
-}
-
-async function loadDocsFromDirectory() {
-  try {
-    const response = await fetch("docs/", { cache: "no-store" });
-    if (!response.ok) {
-      return [];
-    }
-    const html = await response.text();
-    const matches = Array.from(html.matchAll(/href=["']([^"'?#]+\.md)["']/gi));
-    const files = matches.map((match) => match[1]).filter(Boolean);
-    const unique = Array.from(
-      new Set(
-        files.map((file) => {
-          const clean = file.replace(/^\.?\//, "").replace(/^docs\//, "");
-          if (clean.startsWith("docs/") || clean.startsWith(".obsidian/")) {
-            return null;
-          }
-          return `docs/${clean}`;
-        })
-      )
-    );
-    return unique
-      .filter((path) => path && !path.endsWith("docs/index.md"))
-      .map((path) => ({ path }))
-      .reduce((acc, item) => {
-        if (!acc.some((entry) => entry.path === item.path)) {
-          acc.push(item);
-        }
-        return acc;
-      }, []);
-  } catch (error) {
-    return [];
-  }
-}
-
-async function getDocsList() {
-  const manifestItems = await loadDocsManifest();
-  if (manifestItems.length) {
-    return manifestItems;
-  }
-  const dirItems = await loadDocsFromDirectory();
-  if (dirItems.length) {
-    return dirItems;
-  }
-  const raw = await loadMarkdown("docs/index.md");
-  const normalized = normalizeMarkdown(raw, "docs/index.md");
-  const links = extractDocLinks(normalized);
-  return links.map((item) => {
-    const href = item.href || "";
-    const text = item.text || "";
-    const path = normalizeDocLink(href);
-    return path ? { path, title: text } : null;
-  }).filter(Boolean);
-}
-
 function normalizeDocLink(link) {
   if (!link) {
     return null;
@@ -830,19 +720,21 @@ async function ensureDocState() {
     return docState.loadingPromise;
   }
   docState.loadingPromise = (async () => {
-    const docsSource = await getDocsList();
-    const docs = docsSource
+    const raw = await loadMarkdown("docs/index.md");
+    const normalized = normalizeMarkdown(raw, "docs/index.md");
+    const links = extractDocLinks(normalized);
+    const docs = links
       .map((item, index) => {
-        const path = item.path;
+        const href = item.href || "";
+        const text = item.text || "";
+        const path = normalizeDocLink(href);
         if (!path) {
           return null;
         }
         return {
           path,
-          title: item.title || slugToTitle((path || "").split("/").pop().replace(/\.md$/, "")),
-          order: item.order || 0,
-          index,
-          modifiedMs: item.modifiedMs || null
+          title: text || slugToTitle((path || "").split("/").pop().replace(/\.md$/, "")),
+          index
         };
       })
       .filter(Boolean);
@@ -851,7 +743,7 @@ async function ensureDocState() {
       docs.map(async (doc) => {
         try {
           const meta = await loadDocMeta(doc.path);
-          return { ...meta, index: doc.index, order: doc.order || meta.order || 0, modifiedMs: doc.modifiedMs || null };
+          return { ...meta, index: doc.index };
         } catch (error) {
           return {
             path: doc.path,
@@ -859,11 +751,9 @@ async function ensureDocState() {
             title: doc.title,
             tags: [],
             series: "",
-            order: doc.order || 0,
             index: doc.index,
             date: "",
             dateMs: null,
-            modifiedMs: doc.modifiedMs || null,
             summary: "",
             readingTime: 1,
             plain: "",
@@ -873,21 +763,6 @@ async function ensureDocState() {
         }
       })
     );
-    const hasOrder = metas.some((item) => item.order);
-    const hasDate = metas.some((item) => item.dateMs);
-    const hasModified = metas.some((item) => item.modifiedMs);
-    metas.sort((a, b) => {
-      if (hasOrder && a.order !== b.order) {
-        return a.order - b.order;
-      }
-      if (hasDate && a.dateMs !== b.dateMs) {
-        return (b.dateMs || 0) - (a.dateMs || 0);
-      }
-      if (hasModified && a.modifiedMs !== b.modifiedMs) {
-        return (b.modifiedMs || 0) - (a.modifiedMs || 0);
-      }
-      return (a.index || 0) - (b.index || 0);
-    });
     docState.list = metas;
     docState.meta = metas.reduce((acc, item) => {
       acc[item.path] = item;
@@ -1456,33 +1331,6 @@ function renderDocSearchResults(list) {
     .join("");
 }
 
-function buildAutoDocListHtml(list) {
-  if (!list.length) {
-    return `<div class="empty-state">还没有发布文章。</div>`;
-  }
-  const items = list
-    .map((item) => {
-      const slug = getDocSlug(item.path);
-      const meta = [item.date, item.readingTime ? `${item.readingTime} 分钟` : "", item.tags && item.tags.length ? item.tags.join(" · ") : ""]
-        .filter(Boolean)
-        .join(" · ");
-      return `
-        <a class="doc-index-item" href="#/docs/${slug}">
-          <strong>${escapeHtml(item.title)}</strong>
-          <span>${escapeHtml(item.summary)}${meta ? ` · ${escapeHtml(meta)}` : ""}</span>
-        </a>
-      `;
-    })
-    .join("");
-  return `
-    <section class="doc-index">
-      <h2>全部文章</h2>
-      <div class="doc-index-list">
-        ${items}
-      </div>
-    </section>
-  `;
-}
 
 function setupDocSearch(active) {
   if (!docSearchEl || !docSearchInput) {
@@ -2194,22 +2042,12 @@ async function renderRoute() {
       if (aboutViews) {
         headings = renderAboutViews(aboutViews, path);
       } else {
-        const isDocsIndex = route.mdPath === "docs/index.md";
-        if (isDocsIndex) {
-          await ensureDocState();
-        }
         contentEl.innerHTML = renderMarkdown(body);
         renderCallouts(contentEl);
         rewriteLinks(contentEl);
         rewriteAssets(contentEl, path);
         setupCopyButtons();
         bindLightbox(contentEl);
-        if (isDocsIndex) {
-          const hasManualLinks = extractDocLinks(normalized).length > 0;
-          if (!hasManualLinks) {
-            contentEl.insertAdjacentHTML("beforeend", buildAutoDocListHtml(docState.list));
-          }
-        }
         headings = buildTocFromContent();
       }
       setupTocObserver(headings);
