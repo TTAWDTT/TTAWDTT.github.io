@@ -111,6 +111,7 @@ let scrollBound = false;
 let keyBindingsBound = false;
 let imageRevealObserver = null;
 let aboutViewState = null;
+let tocClickBound = false;
 
 function setActiveNav(routeKey) {
   navLinks.forEach((link) => {
@@ -324,9 +325,7 @@ function initSnow() {
   if (!snowCanvas) {
     return;
   }
-  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    return;
-  }
+  const reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const ctx = snowCanvas.getContext("2d");
   if (!ctx) {
     return;
@@ -340,7 +339,8 @@ function initSnow() {
     lastTime: 0,
     mode: "snow",
     rafId: null,
-    frameInterval: 1000 / 30
+    frameInterval: reducedMotion ? 1000 / 18 : 1000 / 30,
+    reducedMotion
   };
   resizeSnow();
   window.addEventListener("resize", resizeSnow);
@@ -469,6 +469,9 @@ function getPreferredAtmosphere() {
   const stored = safeGetItem("atmosphere");
   if (stored) {
     return stored;
+  }
+  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    return "none";
   }
   return "snow";
 }
@@ -1138,10 +1141,11 @@ function buildTocFromContent() {
         heading.id = slugify(heading.textContent || "");
       }
       const indent = heading.tagName === "H3" ? " style=\"margin-left:12px;\"" : "";
-      return `<a href="#${heading.id}"${indent}>${escapeHtml(heading.textContent || "")}</a>`;
+      return `<a href="#" data-target="${escapeHtml(heading.id)}"${indent}>${escapeHtml(heading.textContent || "")}</a>`;
     })
     .join("");
   tocBodyEl.innerHTML = tocHtml;
+  bindTocClicks();
   return headings;
 }
 
@@ -1158,7 +1162,7 @@ function setupTocObserver(headings) {
     (entries) => {
       entries.forEach((entry) => {
         const id = entry.target.id;
-        const link = links.find((item) => item.getAttribute("href") === `#${id}`);
+        const link = links.find((item) => item.dataset.target === id);
         if (entry.isIntersecting && link) {
           links.forEach((item) => item.classList.remove("active"));
           link.classList.add("active");
@@ -1168,6 +1172,28 @@ function setupTocObserver(headings) {
     { rootMargin: "-20% 0px -70% 0px" }
   );
   headings.forEach((heading) => tocObserver.observe(heading));
+}
+
+function bindTocClicks() {
+  if (!tocBodyEl || tocClickBound) {
+    return;
+  }
+  tocBodyEl.addEventListener("click", (event) => {
+    const link = event.target.closest("a[data-target]");
+    if (!link) {
+      return;
+    }
+    event.preventDefault();
+    const targetId = link.getAttribute("data-target");
+    if (!targetId) {
+      return;
+    }
+    const target = document.getElementById(targetId);
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  });
+  tocClickBound = true;
 }
 
 function setupReadingProgress(active) {
