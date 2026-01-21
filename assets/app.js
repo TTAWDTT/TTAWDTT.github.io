@@ -22,7 +22,7 @@ const routes = {
 };
 
 const docAliases = {
-  "GraphSkills": "GraphSkills"
+  "design-notes": "GraphSkills"
 };
 
 const pageEls = {
@@ -132,10 +132,26 @@ function initMarked() {
   }
 }
 
+function safeGetItem(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch (error) {
+    return null;
+  }
+}
+
+function safeSetItem(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch (error) {
+    // Ignore storage failures for file:// or privacy-restricted contexts.
+  }
+}
+
 function applyTheme(theme) {
   const next = theme === "dark" ? "dark" : "light";
   document.documentElement.dataset.theme = next;
-  localStorage.setItem("theme", next);
+  safeSetItem("theme", next);
   if (themeToggle) {
     themeToggle.textContent = next === "dark" ? "浅色模式" : "深色模式";
   }
@@ -145,7 +161,7 @@ function applyTheme(theme) {
 }
 
 function getPreferredTheme() {
-  const stored = localStorage.getItem("theme");
+  const stored = safeGetItem("theme");
   if (stored) {
     return stored;
   }
@@ -392,8 +408,7 @@ async function renderRoute() {
 }
 
 initMarked();
-window.addEventListener("hashchange", renderRoute);
-window.addEventListener("DOMContentLoaded", () => {
+function initPage() {
   applyTheme(getPreferredTheme());
   if (themeToggle) {
     themeToggle.addEventListener("click", () => {
@@ -403,4 +418,11 @@ window.addEventListener("DOMContentLoaded", () => {
   }
   hydrateHomeList();
   renderRoute();
-});
+}
+
+window.addEventListener("hashchange", renderRoute);
+if (document.readyState === "loading") {
+  window.addEventListener("DOMContentLoaded", initPage);
+} else {
+  initPage();
+}
