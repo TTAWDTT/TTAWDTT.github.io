@@ -41,6 +41,8 @@ const navLinks = Array.from(document.querySelectorAll("[data-route]"));
 const homeListEl = document.getElementById("home-posts");
 const themeToggle = document.getElementById("theme-toggle");
 const themeMeta = document.querySelector('meta[name="theme-color"]');
+const snowCanvas = document.getElementById("snow-canvas");
+let snowState = null;
 
 function setActiveNav(routeKey) {
   navLinks.forEach((link) => {
@@ -132,6 +134,97 @@ function initMarked() {
   }
 }
 
+function initSnow() {
+  if (!snowCanvas) {
+    return;
+  }
+  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    return;
+  }
+  const ctx = snowCanvas.getContext("2d");
+  if (!ctx) {
+    return;
+  }
+  snowState = {
+    ctx,
+    width: 0,
+    height: 0,
+    flakes: [],
+    color: getSnowColor(),
+    lastTime: 0
+  };
+  resizeSnow();
+  const count = Math.min(Math.floor(window.innerWidth / 18), 120);
+  snowState.flakes = Array.from({ length: count }, () => createFlake());
+  window.addEventListener("resize", resizeSnow);
+  requestAnimationFrame(stepSnow);
+}
+
+function getSnowColor() {
+  return getComputedStyle(document.documentElement).getPropertyValue("--snow").trim() || "rgba(255,255,255,0.6)";
+}
+
+function resizeSnow() {
+  if (!snowState) {
+    return;
+  }
+  const dpr = window.devicePixelRatio || 1;
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  snowCanvas.width = Math.floor(width * dpr);
+  snowCanvas.height = Math.floor(height * dpr);
+  snowCanvas.style.width = `${width}px`;
+  snowCanvas.style.height = `${height}px`;
+  snowState.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  snowState.width = width;
+  snowState.height = height;
+}
+
+function createFlake() {
+  const size = 0.8 + Math.random() * 2.2;
+  return {
+    x: Math.random() * window.innerWidth,
+    y: Math.random() * window.innerHeight,
+    r: size,
+    speed: 0.25 + Math.random() * 0.9,
+    drift: -0.4 + Math.random() * 0.8,
+    opacity: 0.35 + Math.random() * 0.55
+  };
+}
+
+function stepSnow(timestamp) {
+  if (!snowState) {
+    return;
+  }
+  const delta = snowState.lastTime ? timestamp - snowState.lastTime : 16;
+  snowState.lastTime = timestamp;
+  const speedFactor = delta / 16;
+  const { ctx, width, height } = snowState;
+  ctx.clearRect(0, 0, width, height);
+  ctx.fillStyle = snowState.color;
+
+  snowState.flakes.forEach((flake) => {
+    flake.y += flake.speed * speedFactor;
+    flake.x += flake.drift * speedFactor;
+    if (flake.y > height + 10) {
+      flake.y = -10;
+      flake.x = Math.random() * width;
+    }
+    if (flake.x > width + 10) {
+      flake.x = -10;
+    }
+    if (flake.x < -10) {
+      flake.x = width + 10;
+    }
+    ctx.globalAlpha = flake.opacity;
+    ctx.beginPath();
+    ctx.arc(flake.x, flake.y, flake.r, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+  requestAnimationFrame(stepSnow);
+}
+
 function safeGetItem(key) {
   try {
     return localStorage.getItem(key);
@@ -157,6 +250,9 @@ function applyTheme(theme) {
   }
   if (themeMeta) {
     themeMeta.setAttribute("content", next === "dark" ? "#141413" : "#faf9f5");
+  }
+  if (snowState) {
+    snowState.color = getSnowColor();
   }
 }
 
@@ -416,6 +512,7 @@ function initPage() {
       applyTheme(current === "dark" ? "light" : "dark");
     });
   }
+  initSnow();
   hydrateHomeList();
   renderRoute();
 }
