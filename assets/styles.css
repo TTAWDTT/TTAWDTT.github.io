@@ -449,6 +449,37 @@ a:focus-visible {
   display: block;
 }
 
+.doc-index {
+  margin-top: 24px;
+}
+
+.doc-index h2 {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  margin: 0 0 12px;
+}
+
+.doc-index-list {
+  display: grid;
+  gap: 10px;
+}
+
+.doc-index-item {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  font-family: var(--font-display);
+}
+
+.doc-index-item span {
+  font-size: 0.9rem;
+  color: var(--muted);
+  font-family: var(--font-body);
+}
+
 .doc-tags {
   display: flex;
   flex-wrap: wrap;

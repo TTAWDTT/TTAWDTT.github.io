@@ -250,6 +250,30 @@ function parseFrontmatterValue(value, key) {
   return trimmed;
 }
 
+function parseDateValue(value) {
+  if (!value) {
+    return null;
+  }
+  const raw = String(value).trim();
+  if (!raw) {
+    return null;
+  }
+  const parsed = Date.parse(raw);
+  if (!Number.isNaN(parsed)) {
+    return { raw, timestamp: parsed };
+  }
+  const match = raw.match(/(\d{4})[-/.年](\d{1,2})[-/.月](\d{1,2})/);
+  if (match) {
+    const normalized = `${match[1]}-${String(match[2]).padStart(2, "0")}-${String(match[3]).padStart(2, "0")}`;
+    const normalizedParsed = Date.parse(normalized);
+    return {
+      raw: normalized,
+      timestamp: Number.isNaN(normalizedParsed) ? null : normalizedParsed
+    };
+  }
+  return { raw, timestamp: null };
+}
+
 function parseListValue(value) {
   const cleaned = value.replace(/^\[|\]$/g, "");
   return cleaned
@@ -295,6 +319,116 @@ function extractDocLinksFromMarkdown(markdown) {
     wikiMatch = wikiRegex.exec(markdown);
   }
   return Array.from(links);
+}
+
+async function loadDocsManifest() {
+  try {
+    const data = await loadJson("docs/manifest.json");
+    return normalizeDocsManifest(data);
+  } catch (error) {
+    return [];
+  }
+}
+
+function normalizeDocsManifest(data) {
+  if (!data) {
+    return [];
+  }
+  let items = [];
+  if (Array.isArray(data)) {
+    items = data;
+  } else if (Array.isArray(data.items)) {
+    items = data.items;
+  } else if (Array.isArray(data.files)) {
+    items = data.files;
+  } else if (Array.isArray(data.docs)) {
+    items = data.docs;
+  }
+  return items
+    .map((item) => {
+      if (!item) {
+        return null;
+      }
+      if (typeof item === "string") {
+        const path = normalizeDocLink(item);
+        return path ? { path } : null;
+      }
+      const rawPath = item.path || item.file || item.href || "";
+      const slug = item.slug || "";
+      const resolved = rawPath ? normalizeDocLink(rawPath) : slug ? normalizeDocLink(slug) : null;
+      if (!resolved) {
+        return null;
+      }
+      const modifiedAt = item.modifiedAt || item.updatedAt || item.mtime || "";
+      const modifiedMs = modifiedAt ? Date.parse(modifiedAt) : item.modifiedMs || item.mtimeMs || null;
+      return {
+        path: resolved,
+        title: item.title || "",
+        order: Number(item.order) || 0,
+        modifiedMs: Number.isFinite(modifiedMs) ? modifiedMs : null
+      };
+    })
+    .filter(Boolean)
+    .reduce((acc, item) => {
+      if (!acc.some((entry) => entry.path === item.path)) {
+        acc.push(item);
+      }
+      return acc;
+    }, []);
+}
+
+async function loadDocsFromDirectory() {
+  try {
+    const response = await fetch("docs/", { cache: "no-store" });
+    if (!response.ok) {
+      return [];
+    }
+    const html = await response.text();
+    const matches = Array.from(html.matchAll(/href=["']([^"'?#]+\.md)["']/gi));
+    const files = matches.map((match) => match[1]).filter(Boolean);
+    const unique = Array.from(
+      new Set(
+        files.map((file) => {
+          const clean = file.replace(/^\.?\//, "").replace(/^docs\//, "");
+          if (clean.startsWith("docs/") || clean.startsWith(".obsidian/")) {
+            return null;
+          }
+          return `docs/${clean}`;
+        })
+      )
+    );
+    return unique
+      .filter((path) => path && !path.endsWith("docs/index.md"))
+      .map((path) => ({ path }))
+      .reduce((acc, item) => {
+        if (!acc.some((entry) => entry.path === item.path)) {
+          acc.push(item);
+        }
+        return acc;
+      }, []);
+  } catch (error) {
+    return [];
+  }
+}
+
+async function getDocsList() {
+  const manifestItems = await loadDocsManifest();
+  if (manifestItems.length) {
+    return manifestItems;
+  }
+  const dirItems = await loadDocsFromDirectory();
+  if (dirItems.length) {
+    return dirItems;
+  }
+  const raw = await loadMarkdown("docs/index.md");
+  const normalized = normalizeMarkdown(raw, "docs/index.md");
+  const links = extractDocLinks(normalized);
+  return links.map((item) => {
+    const href = item.href || "";
+    const text = item.text || "";
+    const path = normalizeDocLink(href);
+    return path ? { path, title: text } : null;
+  }).filter(Boolean);
 }
 
 function normalizeDocLink(link) {
@@ -652,6 +786,8 @@ async function loadDocMeta(docPath) {
   const tags = frontmatter.tags || frontmatter.tag || [];
   const series = frontmatter.series || "";
   const order = frontmatter.order || 0;
+  const dateValue = frontmatter.date || frontmatter.time || frontmatter.updated || "";
+  const parsedDate = parseDateValue(dateValue);
   const summarySource = frontmatter.summary || frontmatter.description || "";
   const plain = stripMarkdown(bodyWithoutTitle);
   const summary = summarySource || plain.slice(0, 140);
@@ -663,6 +799,8 @@ async function loadDocMeta(docPath) {
     tags: Array.isArray(tags) ? tags : [tags].filter(Boolean),
     series,
     order,
+    date: parsedDate ? parsedDate.raw : "",
+    dateMs: parsedDate ? parsedDate.timestamp : null,
     summary,
     readingTime,
     plain,
@@ -679,24 +817,28 @@ async function ensureDocState() {
     return docState.loadingPromise;
   }
   docState.loadingPromise = (async () => {
-    const raw = await loadMarkdown("docs/index.md");
-    const normalized = normalizeMarkdown(raw, "docs/index.md");
-    const links = extractDocLinks(normalized);
-    const docs = links.map((item) => {
-      const href = item.href || "";
-      const text = item.text || "";
-      const path = normalizeDocLink(href);
-      return {
-        path,
-        title: text || slugToTitle((path || "").split("/").pop().replace(/\.md$/, "")),
-        href
-      };
-    }).filter((item) => item.path);
+    const docsSource = await getDocsList();
+    const docs = docsSource
+      .map((item, index) => {
+        const path = item.path;
+        if (!path) {
+          return null;
+        }
+        return {
+          path,
+          title: item.title || slugToTitle((path || "").split("/").pop().replace(/\.md$/, "")),
+          order: item.order || 0,
+          index,
+          modifiedMs: item.modifiedMs || null
+        };
+      })
+      .filter(Boolean);
 
     const metas = await Promise.all(
       docs.map(async (doc) => {
         try {
-          return await loadDocMeta(doc.path);
+          const meta = await loadDocMeta(doc.path);
+          return { ...meta, index: doc.index, order: doc.order || meta.order || 0, modifiedMs: doc.modifiedMs || null };
         } catch (error) {
           return {
             path: doc.path,
@@ -704,7 +846,11 @@ async function ensureDocState() {
             title: doc.title,
             tags: [],
             series: "",
-            order: 0,
+            order: doc.order || 0,
+            index: doc.index,
+            date: "",
+            dateMs: null,
+            modifiedMs: doc.modifiedMs || null,
             summary: "",
             readingTime: 1,
             plain: "",
@@ -714,6 +860,21 @@ async function ensureDocState() {
         }
       })
     );
+    const hasOrder = metas.some((item) => item.order);
+    const hasDate = metas.some((item) => item.dateMs);
+    const hasModified = metas.some((item) => item.modifiedMs);
+    metas.sort((a, b) => {
+      if (hasOrder && a.order !== b.order) {
+        return a.order - b.order;
+      }
+      if (hasDate && a.dateMs !== b.dateMs) {
+        return (b.dateMs || 0) - (a.dateMs || 0);
+      }
+      if (hasModified && a.modifiedMs !== b.modifiedMs) {
+        return (b.modifiedMs || 0) - (a.modifiedMs || 0);
+      }
+      return (a.index || 0) - (b.index || 0);
+    });
     docState.list = metas;
     docState.meta = metas.reduce((acc, item) => {
       acc[item.path] = item;
@@ -1270,7 +1431,8 @@ function renderDocSearchResults(list) {
       const slug = getDocSlug(item.path);
       const tags = item.tags && item.tags.length ? item.tags.join(" · ") : "";
       const time = item.readingTime ? `${item.readingTime} 分钟` : "";
-      const meta = [time, tags].filter(Boolean).join(" · ");
+      const date = item.date || "";
+      const meta = [date, time, tags].filter(Boolean).join(" · ");
       return `
         <a href="#/docs/${slug}">
           ${escapeHtml(item.title)}
@@ -1279,6 +1441,34 @@ function renderDocSearchResults(list) {
       `;
     })
     .join("");
+}
+
+function buildAutoDocListHtml(list) {
+  if (!list.length) {
+    return `<div class="empty-state">还没有发布文章。</div>`;
+  }
+  const items = list
+    .map((item) => {
+      const slug = getDocSlug(item.path);
+      const meta = [item.date, item.readingTime ? `${item.readingTime} 分钟` : "", item.tags && item.tags.length ? item.tags.join(" · ") : ""]
+        .filter(Boolean)
+        .join(" · ");
+      return `
+        <a class="doc-index-item" href="#/docs/${slug}">
+          <strong>${escapeHtml(item.title)}</strong>
+          <span>${escapeHtml(item.summary)}${meta ? ` · ${escapeHtml(meta)}` : ""}</span>
+        </a>
+      `;
+    })
+    .join("");
+  return `
+    <section class="doc-index">
+      <h2>全部文章</h2>
+      <div class="doc-index-list">
+        ${items}
+      </div>
+    </section>
+  `;
 }
 
 function setupDocSearch(active) {
@@ -1483,22 +1673,13 @@ async function hydrateHomeList() {
     return;
   }
   try {
-    const raw = await loadMarkdown("docs/index.md");
-    const normalized = normalizeMarkdown(raw, "docs/index.md");
-    const links = extractDocLinks(normalized)
-      .filter((item) => item.href.includes(".md"))
-      .map((item) => ({
-        text: item.text || "未命名",
-        href: toDocRoute(item.href)
-      }));
-    if (!links.length) {
+    await ensureDocState();
+    const latest = docState.list.slice(0, 5);
+    if (!latest.length) {
       return;
     }
-    homeListEl.innerHTML = links
-      .map(
-        (item) =>
-          `<li><a href="${item.href}">${escapeHtml(item.text)}</a></li>`
-      )
+    homeListEl.innerHTML = latest
+      .map((item) => `<li><a href="#/docs/${getDocSlug(item.path)}">${escapeHtml(item.title)}</a></li>`)
       .join("");
   } catch (error) {
     // Keep the static list if docs index cannot be loaded.
@@ -2000,12 +2181,22 @@ async function renderRoute() {
       if (aboutViews) {
         headings = renderAboutViews(aboutViews, path);
       } else {
+        const isDocsIndex = route.mdPath === "docs/index.md";
+        if (isDocsIndex) {
+          await ensureDocState();
+        }
         contentEl.innerHTML = renderMarkdown(body);
         renderCallouts(contentEl);
         rewriteLinks(contentEl);
         rewriteAssets(contentEl, path);
         setupCopyButtons();
         bindLightbox(contentEl);
+        if (isDocsIndex) {
+          const hasManualLinks = extractDocLinks(normalized).length > 0;
+          if (!hasManualLinks) {
+            contentEl.insertAdjacentHTML("beforeend", buildAutoDocListHtml(docState.list));
+          }
+        }
         headings = buildTocFromContent();
       }
       setupTocObserver(headings);
