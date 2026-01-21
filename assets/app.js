@@ -154,7 +154,7 @@ function initSnow() {
     lastTime: 0
   };
   resizeSnow();
-  const count = Math.min(Math.floor(window.innerWidth / 18), 120);
+  const count = Math.min(Math.floor(window.innerWidth / 12), 180);
   snowState.flakes = Array.from({ length: count }, () => createFlake());
   window.addEventListener("resize", resizeSnow);
   requestAnimationFrame(stepSnow);
@@ -181,14 +181,23 @@ function resizeSnow() {
 }
 
 function createFlake() {
-  const size = 0.8 + Math.random() * 2.2;
+  const size = 1.4 + Math.random() * 3.6;
+  const shapeRoll = Math.random();
+  let shape = "dot";
+  if (shapeRoll > 0.7) {
+    shape = "star";
+  } else if (shapeRoll > 0.35) {
+    shape = "diamond";
+  }
   return {
     x: Math.random() * window.innerWidth,
     y: Math.random() * window.innerHeight,
     r: size,
-    speed: 0.25 + Math.random() * 0.9,
-    drift: -0.4 + Math.random() * 0.8,
-    opacity: 0.35 + Math.random() * 0.55
+    speed: 0.35 + Math.random() * 1.2,
+    drift: -0.5 + Math.random() * 1,
+    opacity: 0.4 + Math.random() * 0.55,
+    rotation: Math.random() * Math.PI * 2,
+    shape
   };
 }
 
@@ -206,6 +215,7 @@ function stepSnow(timestamp) {
   snowState.flakes.forEach((flake) => {
     flake.y += flake.speed * speedFactor;
     flake.x += flake.drift * speedFactor;
+    flake.rotation += 0.004 * speedFactor;
     if (flake.y > height + 10) {
       flake.y = -10;
       flake.x = Math.random() * width;
@@ -217,9 +227,33 @@ function stepSnow(timestamp) {
       flake.x = width + 10;
     }
     ctx.globalAlpha = flake.opacity;
-    ctx.beginPath();
-    ctx.arc(flake.x, flake.y, flake.r, 0, Math.PI * 2);
-    ctx.fill();
+    if (flake.shape === "diamond") {
+      ctx.save();
+      ctx.translate(flake.x, flake.y);
+      ctx.rotate(flake.rotation);
+      ctx.beginPath();
+      ctx.rect(-flake.r * 0.6, -flake.r * 0.6, flake.r * 1.2, flake.r * 1.2);
+      ctx.fill();
+      ctx.restore();
+    } else if (flake.shape === "star") {
+      ctx.save();
+      ctx.translate(flake.x, flake.y);
+      ctx.rotate(flake.rotation);
+      ctx.strokeStyle = snowState.color;
+      ctx.lineWidth = Math.max(1, flake.r * 0.2);
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(-flake.r, 0);
+      ctx.lineTo(flake.r, 0);
+      ctx.moveTo(0, -flake.r);
+      ctx.lineTo(0, flake.r);
+      ctx.stroke();
+      ctx.restore();
+    } else {
+      ctx.beginPath();
+      ctx.arc(flake.x, flake.y, flake.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
   });
   ctx.globalAlpha = 1;
   requestAnimationFrame(stepSnow);
