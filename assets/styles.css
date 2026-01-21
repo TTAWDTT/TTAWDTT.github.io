@@ -127,20 +127,40 @@ code {
 }
 
 .theme-toggle {
+  position: relative;
   border: 1px solid var(--border);
-  background: transparent;
+  background: var(--surface-alt);
   color: var(--ink);
-  padding: 6px 10px;
+  padding: 6px 12px 6px 30px;
   border-radius: 999px;
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   font-weight: 600;
   font-family: var(--font-display);
   cursor: pointer;
-  transition: border-color 0.2s ease, color 0.2s ease;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
 .theme-toggle:hover {
+  background: var(--surface);
   border-color: var(--muted);
+}
+
+.theme-toggle::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--accent);
+  transform: translateY(-50%);
+}
+
+[data-theme="dark"] .theme-toggle::before {
+  background: var(--accent-2);
 }
 
 .site-main {

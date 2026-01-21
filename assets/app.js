@@ -137,7 +137,7 @@ function applyTheme(theme) {
   document.documentElement.dataset.theme = next;
   localStorage.setItem("theme", next);
   if (themeToggle) {
-    themeToggle.textContent = next === "dark" ? "浅色" : "深色";
+    themeToggle.textContent = next === "dark" ? "浅色模式" : "深色模式";
   }
   if (themeMeta) {
     themeMeta.setAttribute("content", next === "dark" ? "#141413" : "#faf9f5");
