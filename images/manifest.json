@@ -45,7 +45,7 @@
         {"src": "images/works/sama.png", "caption": "SAMA", "notes": "自己做的第一个完整的Agent"},
         {"src": "images/works/codepulse.png", "caption": "codepulse", "notes": "分析代码提交的小玩具~"},
         {"src": "images/works/heroui.jpg", "caption": "HeroUI", "notes": "这个东西太方便了！"},
-        {"src": "images/works/voidkings.jpg", "caption": "VoidKings", "notes": "小游戏哦"}
+        {"src": "images/works/voidkings.jpg", "caption": "VoidKings", "notes": "小游戏哦"},
         {"src": "images/works/skillwriter.png", "caption": "SkillWriter", "notes": "这个项目，承载了太多过往……"}
       ]
     }
