@@ -39,6 +39,8 @@ const headerEls = {
 const contentEl = document.getElementById("page-content");
 const navLinks = Array.from(document.querySelectorAll("[data-route]"));
 const homeListEl = document.getElementById("home-posts");
+const themeToggle = document.getElementById("theme-toggle");
+const themeMeta = document.querySelector('meta[name="theme-color"]');
 
 function setActiveNav(routeKey) {
   navLinks.forEach((link) => {
@@ -128,6 +130,29 @@ function initMarked() {
       renderer
     });
   }
+}
+
+function applyTheme(theme) {
+  const next = theme === "dark" ? "dark" : "light";
+  document.documentElement.dataset.theme = next;
+  localStorage.setItem("theme", next);
+  if (themeToggle) {
+    themeToggle.textContent = next === "dark" ? "浅色" : "深色";
+  }
+  if (themeMeta) {
+    themeMeta.setAttribute("content", next === "dark" ? "#141413" : "#faf9f5");
+  }
+}
+
+function getPreferredTheme() {
+  const stored = localStorage.getItem("theme");
+  if (stored) {
+    return stored;
+  }
+  if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+    return "dark";
+  }
+  return "light";
 }
 
 function renderMarkdown(markdown) {
@@ -369,6 +394,13 @@ async function renderRoute() {
 initMarked();
 window.addEventListener("hashchange", renderRoute);
 window.addEventListener("DOMContentLoaded", () => {
+  applyTheme(getPreferredTheme());
+  if (themeToggle) {
+    themeToggle.addEventListener("click", () => {
+      const current = document.documentElement.dataset.theme || "light";
+      applyTheme(current === "dark" ? "light" : "dark");
+    });
+  }
   hydrateHomeList();
   renderRoute();
 });
