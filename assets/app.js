@@ -519,12 +519,14 @@ function renderEmptyState(message) {
 function buildPhotoCard(photo) {
   const src = normalizeImageSrc(photo.src || "");
   const caption = photo.caption || photo.title || "";
-  const note = photo.note || "";
+  const note = photo.note || photo.notes || "";
   const imgTag = src
     ? `<img src="${normalizeUrl(src)}" alt="${escapeHtml(caption || "照片")}">`
     : "";
   const captionTag = caption ? `<p class="photo-caption">${escapeHtml(caption)}</p>` : "";
-  const noteTag = note ? `<p class="photo-note">${escapeHtml(note)}</p>` : "";
+  const noteTag = note
+    ? `<p class="photo-note"><span class="note-prefix">--</span><em>${escapeHtml(note)}</em></p>`
+    : "";
   return `<figure class="photo-card">${imgTag}${captionTag}${noteTag}</figure>`;
 }
 
