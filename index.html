@@ -12,7 +12,7 @@
       href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600&family=Noto+Serif+SC:wght@400;500;600&family=Poppins:wght@500;600;700&display=swap"
       rel="stylesheet"
     >
-    <link rel="stylesheet" href="assets/styles.css?v=4">
+    <link rel="stylesheet" href="assets/styles.css?v=5">
   </head>
   <body>
     <canvas class="snow-canvas" id="snow-canvas" aria-hidden="true"></canvas>
@@ -24,6 +24,7 @@
             <a href="#/home" data-route="home">首页</a>
             <a href="#/about" data-route="about">关于</a>
             <a href="#/docs" data-route="docs">文章</a>
+            <a href="#/images" data-route="images">相册</a>
           </nav>
           <button class="theme-toggle" id="theme-toggle" type="button" aria-label="切换深浅色">
             深色模式
@@ -62,10 +63,19 @@
         <article class="prose" id="page-content"></article>
       </section>
 
+      <section class="page images-page" data-page="images">
+        <div class="content-header">
+          <p class="eyebrow">相册</p>
+          <h1 id="images-title">照片</h1>
+          <p class="subtitle" id="images-subtitle"></p>
+        </div>
+        <div class="album-list" id="images-albums"></div>
+      </section>
+
     </main>
 
     <noscript>此页面需要启用 JavaScript 才能渲染内容。</noscript>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="assets/app.js?v=4"></script>
+    <script src="assets/app.js?v=5"></script>
   </body>
 </html>

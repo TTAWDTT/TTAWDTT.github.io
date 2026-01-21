@@ -1,0 +1,43 @@
+{
+  "title": "图集",
+  "subtitle": "以图片记录一些事情",
+  "albums": [
+    {
+      "title": "Reze",
+      "notes": "一些Reze的图片",
+      "photos": [
+        {"src": "images/Reze/3165de1c435f8feb0023fc528ea9ddd3.jpg", "caption": "开心的Reze", "notes": "Reze笑了！"},
+        {"src": "images/Reze/35dd8c65650e357446fa422c376168d9.jpg", "caption": "Reze-炸弹人", "notes": "Boom！"},
+        {"src": "images/Reze/6c2d4fe31afc3078a3a10e175cc60579.jpg", "caption": "和服Reze", "notes": "好看，拿来做推特首页了"},
+        {"src": "images/Reze/15737ba759c444d30d9a39b4eeed760e.jpg", "caption": "Reze与电次", "notes": "很幸福"}
+      ]
+    },
+    {
+      "title": "日常",
+      "notes": "生活中的一些图片",
+      "photos": [
+        {"src": "images/Daily/review_with_reze.jpg", "caption": "Reze", "notes": "嘿嘿复习的时候壁纸是Reze"},
+        {"src": "images/Daily/mamaqiche.jpg", "caption": "坐老妈骑的电动车", "notes": "太恐怖了家人们"},
+        {"src": "images/Daily/play_poker.jpg", "caption": "蜘蛛纸牌", "notes": "好玩！真的好玩！"},
+        {"src": "images/Daily/smoke.jpg", "caption": "smoke", "notes": "考完历史抽中南海"},
+        {"src": "images/Daily/mixuebingcheng.jpg", "caption": "小冰淇淋", "notes": "上海三块钱，老家卖两块"},
+        {"src": "images/Daily/kaohongshu.jpg", "caption": "烤红薯", "notes": "唔，有点悲伤的故事"},
+        {"src": "images/Daily/heiyabao.jpg", "caption": "黑鸭煲", "notes": "好吃"}
+      ]
+    },
+    {
+      "title": "❤",
+      "notes": "一些隐晦的图片",
+      "photos": [
+        {"src": "images/Love/gongzuo.jpg", "caption": "工作", "notes": "这就是我工作的状态！"},
+        {"src": "images/Love/erji.jpg", "caption": "耳机", "notes": "有线耳机更有韵味"},
+        {"src": "images/Love/smoke.jpg", "caption": "smoke", "notes": "陪我抽烟的女人"},
+        {"src": "images/Love/feiji.jpg", "caption": "飞机", "notes": "机场偶遇"},
+        {"src": "images/Love/xuedi.jpg", "caption": "雪地", "notes": "要写我的名字！"},
+        {"src": "images/Love/yingzi.jpg", "caption": "影子", "notes": "影子总是很暧昧"},
+        {"src": "images/Love/fushi.jpg", "caption": "俯视", "notes": "很有意思的视角"}
+      ]
+    }
+  ],
+  "photos": []
+}

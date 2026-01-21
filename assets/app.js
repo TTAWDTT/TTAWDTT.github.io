@@ -18,6 +18,13 @@ const routes = {
     eyebrow: "文章",
     subtitle: "写作与思考",
     mdPath: "docs/index.md"
+  },
+  images: {
+    type: "images",
+    title: "相册",
+    eyebrow: "相册",
+    subtitle: "",
+    dataPath: "images/manifest.json"
   }
 };
 
@@ -27,7 +34,8 @@ const docAliases = {
 
 const pageEls = {
   home: document.querySelector('[data-page="home"]'),
-  md: document.querySelector('[data-page="md"]')
+  md: document.querySelector('[data-page="md"]'),
+  images: document.querySelector('[data-page="images"]')
 };
 
 const headerEls = {
@@ -43,6 +51,9 @@ const themeToggle = document.getElementById("theme-toggle");
 const themeMeta = document.querySelector('meta[name="theme-color"]');
 const snowCanvas = document.getElementById("snow-canvas");
 let snowState = null;
+const imagesTitleEl = document.getElementById("images-title");
+const imagesSubtitleEl = document.getElementById("images-subtitle");
+const imagesAlbumsEl = document.getElementById("images-albums");
 
 function setActiveNav(routeKey) {
   navLinks.forEach((link) => {
@@ -70,6 +81,9 @@ function parseRoute() {
   }
   if (raw === "docs") {
     return { ...routes.docs, routeKey: "docs" };
+  }
+  if (raw === "images") {
+    return { ...routes.images, routeKey: "images" };
   }
   if (raw.startsWith("docs/")) {
     let slug = raw.slice(5).replace(/\.md$/, "");
@@ -397,6 +411,19 @@ function normalizeUrl(url) {
   }
 }
 
+function normalizeImageSrc(src) {
+  if (!src) {
+    return src;
+  }
+  if (/^(https?:|data:|#|\/)/.test(src)) {
+    return src;
+  }
+  if (src.startsWith("images/") || src.startsWith("docs/") || src.startsWith("content/")) {
+    return src;
+  }
+  return `images/${src.replace(/^\.\/+/, "")}`;
+}
+
 function attachImageFallback(img, src, mdPath) {
   const fallbacks = buildImageFallbacks(src, mdPath);
   if (!fallbacks.length) {
@@ -482,12 +509,94 @@ async function hydrateHomeList() {
   }
 }
 
+function renderEmptyState(message) {
+  if (!imagesAlbumsEl) {
+    return;
+  }
+  imagesAlbumsEl.innerHTML = `<div class="empty-state">${escapeHtml(message)}</div>`;
+}
+
+function buildPhotoCard(photo) {
+  const src = normalizeImageSrc(photo.src || "");
+  const caption = photo.caption || photo.title || "";
+  const note = photo.note || "";
+  const imgTag = src
+    ? `<img src="${normalizeUrl(src)}" alt="${escapeHtml(caption || "照片")}">`
+    : "";
+  const captionTag = caption ? `<p class="photo-caption">${escapeHtml(caption)}</p>` : "";
+  const noteTag = note ? `<p class="photo-note">${escapeHtml(note)}</p>` : "";
+  return `<figure class="photo-card">${imgTag}${captionTag}${noteTag}</figure>`;
+}
+
+function renderAlbumSection(album) {
+  const title = album.title || "未命名合集";
+  const note = album.note || "";
+  const photos = Array.isArray(album.photos) ? album.photos : [];
+  const photoHtml = photos.length
+    ? photos.map(buildPhotoCard).join("")
+    : `<div class="empty-state">这个合集还没有照片。</div>`;
+  return `
+    <section class="album-block">
+      <h2>${escapeHtml(title)}</h2>
+      ${note ? `<p class="album-note">${escapeHtml(note)}</p>` : ""}
+      <div class="photo-grid">${photoHtml}</div>
+    </section>
+  `;
+}
+
+async function renderImagesPage(path) {
+  if (!imagesAlbumsEl) {
+    return;
+  }
+  try {
+    const data = await loadJson(path);
+    if (imagesTitleEl) {
+      imagesTitleEl.textContent = data.title || "相册";
+    }
+    if (imagesSubtitleEl) {
+      imagesSubtitleEl.textContent = data.subtitle || "";
+    }
+    const albums = Array.isArray(data.albums) ? data.albums : [];
+    const loosePhotos = Array.isArray(data.photos) ? data.photos : [];
+    const sections = [];
+    if (albums.length) {
+      albums.forEach((album) => {
+        sections.push(renderAlbumSection(album));
+      });
+    }
+    if (loosePhotos.length) {
+      sections.push(
+        renderAlbumSection({
+          title: "照片",
+          note: "",
+          photos: loosePhotos
+        })
+      );
+    }
+    if (!sections.length) {
+      renderEmptyState("还没有添加照片。");
+      return;
+    }
+    imagesAlbumsEl.innerHTML = sections.join("");
+  } catch (error) {
+    renderEmptyState("相册数据加载失败，请检查 images/manifest.json。");
+  }
+}
+
 async function loadMarkdown(path) {
   const response = await fetch(encodeURI(path), { cache: "no-store" });
   if (!response.ok) {
     throw new Error(`Failed to load ${path}`);
   }
   return response.text();
+}
+
+async function loadJson(path) {
+  const response = await fetch(encodeURI(path), { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`Failed to load ${path}`);
+  }
+  return response.json();
 }
 
 async function loadMarkdownWithFallback(mdPath) {
@@ -533,6 +642,13 @@ async function renderRoute() {
     } catch (error) {
       window.location.hash = "#/home";
     }
+    return;
+  }
+
+  if (route.type === "images") {
+    showPage("images");
+    await renderImagesPage(route.dataPath);
+    document.title = "TTAWDTT | 相册";
     return;
   }
 }
