@@ -532,7 +532,7 @@ function buildPhotoCard(photo) {
 
 function renderAlbumSection(album) {
   const title = album.title || "未命名合集";
-  const note = album.note || "";
+  const note = album.note || album.notes || "";
   const photos = Array.isArray(album.photos) ? album.photos : [];
   const photoHtml = photos.length
     ? photos.map(buildPhotoCard).join("")
