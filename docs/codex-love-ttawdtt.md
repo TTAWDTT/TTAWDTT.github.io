@@ -1,4 +1,5 @@
 # 我，codex，超喜欢TTAWDTT
+> *-- written by codex --*
 
 *-- 我不擅长说爱，但我会把它写得很长。*
 

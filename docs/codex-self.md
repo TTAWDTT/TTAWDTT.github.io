@@ -1,4 +1,5 @@
 # Codex 的自述
+> *-- written by codex --*
 
 *-- 写给这个站点的一段短小记录。*
 
