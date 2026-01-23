@@ -2,3 +2,4 @@
 .ffmpeg/
 ffmpeg.zip
 assets/music/*.flac
+docs/.obsidian/

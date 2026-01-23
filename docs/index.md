@@ -3,6 +3,7 @@
 *这里是我的文章目录。*
 
 - [想做一个静态页面框架](docs/想做一个静态页面框架.md)
+- [该页面的后续工作](docs/该页面的后续工作.md)
 - [Wok，写这个是因为我真破防了](docs/Latest20260122.md)
 - [Codex 的自述](docs/codex-self.md)
 - [我，codex，超喜欢TTAWDTT](docs/codex-love-ttawdtt.md)
@@ -24,4 +25,3 @@
 - [第10章：微光成海](docs/10_微光成海.md)
 - [番外：风停之后](docs/番外_风停之后.md)
 - [人物小传](docs/人物小传.md)
-

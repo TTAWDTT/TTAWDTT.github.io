@@ -98,15 +98,9 @@ const bgmState = {
   mediaSource: null,
   context: null,
   master: null,
-  musicBus: null,
-  compressor: null,
-  reverbIn: null,
-  reverbOut: null,
-  convolver: null,
   analyser: null,
   analyserData: null,
   timeData: null,
-  noiseBuffer: null,
   visCtx: null,
   visRaf: 0,
   nextNoteTime: 0,
@@ -1157,29 +1151,6 @@ function ensureAudioContext() {
   const master = context.createGain();
   master.gain.value = 0.0001;
 
-  const musicBus = context.createGain();
-  musicBus.gain.value = 1;
-
-  const compressor = context.createDynamicsCompressor();
-  compressor.threshold.value = -22;
-  compressor.knee.value = 24;
-  compressor.ratio.value = 2.6;
-  compressor.attack.value = 0.004;
-  compressor.release.value = 0.22;
-
-  musicBus.connect(compressor);
-  compressor.connect(master);
-
-  const reverbIn = context.createGain();
-  reverbIn.gain.value = 1;
-  const convolver = context.createConvolver();
-  convolver.buffer = buildReverbImpulse(context, 1.9, 2.4);
-  const reverbOut = context.createGain();
-  reverbOut.gain.value = 0.28;
-  reverbIn.connect(convolver);
-  convolver.connect(reverbOut);
-  reverbOut.connect(compressor);
-
   const analyser = context.createAnalyser();
   analyser.fftSize = 1024;
   analyser.smoothingTimeConstant = 0.9;
@@ -1188,16 +1159,10 @@ function ensureAudioContext() {
 
   bgmState.context = context;
   bgmState.master = master;
-  bgmState.musicBus = musicBus;
-  bgmState.compressor = compressor;
-  bgmState.reverbIn = reverbIn;
-  bgmState.reverbOut = reverbOut;
-  bgmState.convolver = convolver;
   bgmState.analyser = analyser;
   bgmState.analyserData = new Uint8Array(analyser.frequencyBinCount);
   bgmState.timeData = new Uint8Array(analyser.fftSize);
   bgmState.visCtx = bgmVisCanvas ? bgmVisCanvas.getContext("2d") : null;
-  bgmState.noiseBuffer = buildNoiseBuffer(context, 2.0);
   return context;
 }
 
@@ -1251,7 +1216,7 @@ function clamp01(value) {
 
 function ensureBgmAudioGraph() {
   const context = ensureAudioContext();
-  if (!context || !bgmState.musicBus) {
+  if (!context || !bgmState.master) {
     return null;
   }
 
@@ -1279,7 +1244,7 @@ function ensureBgmAudioGraph() {
   if (!bgmState.mediaSource) {
     try {
       bgmState.mediaSource = context.createMediaElementSource(bgmState.audioEl);
-      bgmState.mediaSource.connect(bgmState.musicBus);
+      bgmState.mediaSource.connect(bgmState.master);
     } catch (error) {
       setBgmSubtitle("音频初始化失败（可能重复创建 MediaElementSource）。");
       return null;
@@ -1415,30 +1380,6 @@ async function playPrevTrack() {
   }
 }
 
-function buildReverbImpulse(context, seconds, decay) {
-  const length = Math.max(1, Math.floor(context.sampleRate * seconds));
-  const impulse = context.createBuffer(2, length, context.sampleRate);
-  for (let c = 0; c < impulse.numberOfChannels; c += 1) {
-    const channel = impulse.getChannelData(c);
-    for (let i = 0; i < length; i += 1) {
-      const t = i / length;
-      const amp = Math.pow(1 - t, decay);
-      channel[i] = (Math.random() * 2 - 1) * amp;
-    }
-  }
-  return impulse;
-}
-
-function buildNoiseBuffer(context, seconds) {
-  const length = Math.max(1, Math.floor(context.sampleRate * seconds));
-  const buffer = context.createBuffer(1, length, context.sampleRate);
-  const data = buffer.getChannelData(0);
-  for (let i = 0; i < length; i += 1) {
-    data[i] = (Math.random() * 2 - 1) * 0.6;
-  }
-  return buffer;
-}
-
 function stopAllNodes() {
   bgmState.nodeRefs.forEach((node) => {
     try {
@@ -1451,10 +1392,6 @@ function stopAllNodes() {
     }
   });
   bgmState.nodeRefs = [];
-}
-
-function midiToFreq(midi) {
-  return 440 * Math.pow(2, (midi - 69) / 12);
 }
 
 function createEnvGain(context, time, { attack, decay, sustain, release, gain }) {
@@ -1470,103 +1407,6 @@ function createEnvGain(context, time, { attack, decay, sustain, release, gain })
   g.gain.exponentialRampToValueAtTime(0.0001, time + a + d + r);
   bgmState.nodeRefs.push(g);
   return g;
-}
-
-function schedulePianoNote(context, time, midi, velocity, { bright, sustain }) {
-  if (!bgmState.musicBus || !bgmState.reverbIn || !bgmState.noiseBuffer) {
-    return;
-  }
-  const freq = midiToFreq(midi);
-
-  const voiceGain = context.createGain();
-  const amp = Math.max(0.0001, Math.min(1, velocity)) * 0.18;
-  const sustainSeconds = Math.max(0.6, sustain ?? (midi < 55 ? 2.8 : 1.9));
-  voiceGain.gain.setValueAtTime(0.0001, time);
-  voiceGain.gain.exponentialRampToValueAtTime(amp, time + 0.008);
-  voiceGain.gain.exponentialRampToValueAtTime(Math.max(0.0001, amp * 0.42), time + 0.12);
-  voiceGain.gain.exponentialRampToValueAtTime(0.0001, time + sustainSeconds);
-
-  const filter = context.createBiquadFilter();
-  filter.type = "lowpass";
-  filter.frequency.setValueAtTime(1200 + (bright ? 2400 : 1400), time);
-  filter.Q.setValueAtTime(0.7, time);
-
-  voiceGain.connect(filter);
-  filter.connect(bgmState.musicBus);
-
-  const send = context.createGain();
-  send.gain.setValueAtTime(bright ? 0.22 : 0.18, time);
-  filter.connect(send);
-  send.connect(bgmState.reverbIn);
-
-  const partials = [
-    { ratio: 1, gain: 1.0 },
-    { ratio: 2, gain: 0.22 },
-    { ratio: 3, gain: 0.12 },
-    { ratio: 4, gain: 0.07 }
-  ];
-
-  partials.forEach((p) => {
-    const g = context.createGain();
-    g.gain.setValueAtTime(0.0001, time);
-    g.gain.exponentialRampToValueAtTime(p.gain, time + 0.008);
-    g.gain.exponentialRampToValueAtTime(Math.max(0.0001, p.gain * (p.ratio === 1 ? 0.55 : 0.3)), time + 0.18);
-    g.gain.exponentialRampToValueAtTime(0.0001, time + Math.min(2.4, sustainSeconds + 0.3));
-
-    if (p.ratio === 1) {
-      const oscA = context.createOscillator();
-      oscA.type = "triangle";
-      oscA.frequency.setValueAtTime(freq, time);
-      oscA.detune.setValueAtTime(-3.2, time);
-      const oscB = context.createOscillator();
-      oscB.type = "triangle";
-      oscB.frequency.setValueAtTime(freq, time);
-      oscB.detune.setValueAtTime(3.2, time);
-      oscA.connect(g);
-      oscB.connect(g);
-      g.connect(voiceGain);
-      oscA.start(time);
-      oscB.start(time);
-      oscA.stop(time + sustainSeconds + 0.45);
-      oscB.stop(time + sustainSeconds + 0.45);
-      bgmState.nodeRefs.push(oscA, oscB, g);
-      return;
-    }
-
-    const osc = context.createOscillator();
-    osc.type = "sine";
-    osc.frequency.setValueAtTime(freq * p.ratio, time);
-    osc.connect(g);
-    g.connect(voiceGain);
-    osc.start(time);
-    osc.stop(time + sustainSeconds + 0.35);
-    bgmState.nodeRefs.push(osc, g);
-  });
-
-  const hammer = context.createBufferSource();
-  hammer.buffer = bgmState.noiseBuffer;
-  const hammerFilter = context.createBiquadFilter();
-  hammerFilter.type = "bandpass";
-  hammerFilter.frequency.setValueAtTime(freq * 2.2, time);
-  hammerFilter.Q.setValueAtTime(0.9, time);
-  const hammerGain = createEnvGain(context, time, {
-    attack: 0.001,
-    decay: 0.03,
-    sustain: 0.0001,
-    release: 0.04,
-    gain: amp * 0.55
-  });
-  hammer.connect(hammerFilter);
-  hammerFilter.connect(hammerGain);
-  hammerGain.connect(voiceGain);
-  hammer.start(time);
-  hammer.stop(time + 0.12);
-
-  bgmState.nodeRefs.push(voiceGain, filter, send, hammer, hammerFilter);
-}
-
-function schedulePianoChord(context, time, chord, velocity, options) {
-  chord.forEach((midi) => schedulePianoNote(context, time, midi, velocity, options));
 }
 
 function startSnowLoop() {

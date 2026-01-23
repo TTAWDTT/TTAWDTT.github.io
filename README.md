@@ -32,3 +32,10 @@ Open `index.html` directly in a browser, or serve the folder with any static ser
 ## Deployment
 
 Push to GitHub Pages. No build step required.
+
+## RSS
+
+- Output file: `feed.xml`
+- Generate locally: `SITE_URL="https://ttawdtt.github.io/" node scripts/generate-rss.mjs`
+- Commit the updated `feed.xml` so GitHub Pages can serve it.
+- Options: `RSS_MAX_ITEMS=50` and `RSS_MODE=summary|full`
