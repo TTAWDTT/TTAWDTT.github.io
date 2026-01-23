@@ -1,0 +1,13 @@
+{
+  "title": "Music",
+  "loop": "playlist",
+  "tracks": [
+    { "title": "『ユイカ』 - 好きだから。 (因为我喜欢你。)", "src": "assets/music/『ユイカ』 - 好きだから。 (因为我喜欢你。)_EM.mp3" },
+    { "title": "羊文学 - more than words", "src": "assets/music/羊文学 - more than words.mp3" },
+    { "title": "back number - 水平線", "src": "assets/music/back number - 水平線_EM.mp3" },
+    { "title": "DISH__ - 猫 (THE FIRST TAKE ver_)", "src": "assets/music/DISH__ - 猫 (THE FIRST TAKE ver_)_EM.mp3" },
+    { "title": "RADWIMPS - かたわれ時 (黄昏之时)", "src": "assets/music/RADWIMPS - かたわれ時 (黄昏之时)_EM.mp3" },
+    { "title": "tuki_ - 晩餐歌", "src": "assets/music/tuki_ - 晩餐歌_EM.mp3" },
+    { "title": "ヨルシカ - 老人と海 (老人与海)", "src": "assets/music/ヨルシカ - 老人と海 (老人与海)_EM.mp3" }
+  ]
+}

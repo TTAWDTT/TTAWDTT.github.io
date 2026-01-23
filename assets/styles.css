@@ -248,6 +248,31 @@ code {
   gap: 10px;
 }
 
+.bgm-track-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.bgm-skip {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  padding: 8px 10px;
+  border-radius: 12px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-family: var(--font-display);
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+
+.bgm-skip:hover {
+  color: var(--ink);
+  background: var(--surface-alt);
+  border-color: var(--muted);
+}
+
 .bgm-volume {
   display: flex;
   align-items: center;

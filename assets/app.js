@@ -79,15 +79,21 @@ const backToTop = document.getElementById("back-to-top");
 const bgmRoot = document.getElementById("bgm");
 const bgmToggle = document.getElementById("bgm-toggle");
 const bgmPanel = document.getElementById("bgm-panel");
+const bgmTitleEl = document.getElementById("bgm-title");
 const bgmSubtitle = document.getElementById("bgm-subtitle");
 const bgmVisCanvas = document.getElementById("bgm-vis");
 const bgmVolumeInput = document.getElementById("bgm-volume");
+const bgmPrevBtn = document.getElementById("bgm-prev");
+const bgmNextBtn = document.getElementById("bgm-next");
 
 const bgmState = {
   enabled: false,
   preferredEnabled: false,
   volume: 0.4,
-  trackSrc: "assets/music/RADWIMPS - かたわれ時 (黄昏之时)_EM.flac",
+  manifestSrc: "assets/music/manifest.json",
+  playlist: [],
+  trackIndex: 0,
+  trackTitle: "",
   audioEl: null,
   mediaSource: null,
   context: null,
@@ -152,6 +158,7 @@ let keyBindingsBound = false;
 let imageRevealObserver = null;
 let aboutViewState = null;
 let tocClickBound = false;
+let bgmCloseTimer = 0;
 
 function getStored(key, fallback) {
   try {
@@ -1083,6 +1090,10 @@ function openBgmPanel(open) {
   if (!bgmRoot || !bgmPanel) {
     return;
   }
+  if (bgmCloseTimer) {
+    window.clearTimeout(bgmCloseTimer);
+    bgmCloseTimer = 0;
+  }
   bgmRoot.classList.toggle("is-open", Boolean(open));
   bgmPanel.setAttribute("aria-hidden", open ? "false" : "true");
   if (open) {
@@ -1095,6 +1106,19 @@ function openBgmPanel(open) {
     window.cancelAnimationFrame(bgmState.visRaf);
     bgmState.visRaf = 0;
   }
+}
+
+function scheduleCloseBgmPanel(delayMs = 140) {
+  if (!bgmRoot || !bgmPanel) {
+    return;
+  }
+  if (bgmCloseTimer) {
+    window.clearTimeout(bgmCloseTimer);
+  }
+  bgmCloseTimer = window.setTimeout(() => {
+    bgmCloseTimer = 0;
+    openBgmPanel(false);
+  }, delayMs);
 }
 
 function setBgmSubtitle(text) {
@@ -1234,8 +1258,7 @@ function ensureBgmAudioGraph() {
   if (!bgmState.audioEl) {
     const audio = document.createElement("audio");
     audio.preload = "metadata";
-    audio.loop = true;
-    audio.src = normalizeUrl(bgmState.trackSrc);
+    audio.loop = false;
     audio.volume = Math.min(1, Math.max(0, bgmState.volume));
     bgmState.audioEl = audio;
 
@@ -1243,6 +1266,13 @@ function ensureBgmAudioGraph() {
       setBgmSubtitle("音频加载失败：请检查文件路径。");
       bgmState.enabled = false;
       updateBgmButton();
+    });
+
+    audio.addEventListener("ended", () => {
+      if (!bgmState.enabled) {
+        return;
+      }
+      void playNextTrack();
     });
   }
 
@@ -1257,6 +1287,132 @@ function ensureBgmAudioGraph() {
   }
 
   return bgmState.audioEl;
+}
+
+function getDefaultPlaylist() {
+  return [
+    { title: "『ユイカ』 - 好きだから。 (因为我喜欢你。)", src: "assets/music/『ユイカ』 - 好きだから。 (因为我喜欢你。)_EM.mp3" },
+    { title: "羊文学 - more than words", src: "assets/music/羊文学 - more than words.mp3" },
+    { title: "back number - 水平線", src: "assets/music/back number - 水平線_EM.mp3" },
+    { title: "DISH__ - 猫 (THE FIRST TAKE ver_)", src: "assets/music/DISH__ - 猫 (THE FIRST TAKE ver_)_EM.mp3" },
+    { title: "RADWIMPS - かたわれ時 (黄昏之时)", src: "assets/music/RADWIMPS - かたわれ時 (黄昏之时)_EM.mp3" },
+    { title: "tuki_ - 晩餐歌", src: "assets/music/tuki_ - 晩餐歌_EM.mp3" },
+    { title: "ヨルシカ - 老人と海 (老人与海)", src: "assets/music/ヨルシカ - 老人と海 (老人与海)_EM.mp3" }
+  ];
+}
+
+async function loadBgmPlaylist() {
+  if (bgmState.playlist.length) {
+    return bgmState.playlist;
+  }
+  try {
+    const data = await loadJson(bgmState.manifestSrc);
+    const tracks = Array.isArray(data.tracks) ? data.tracks : [];
+    bgmState.playlist = tracks
+      .map((track) => ({
+        title: String(track.title || "").trim(),
+        src: String(track.src || "").trim()
+      }))
+      .filter((track) => track.src);
+  } catch (error) {
+    bgmState.playlist = getDefaultPlaylist();
+  }
+  if (!bgmState.playlist.length) {
+    bgmState.playlist = getDefaultPlaylist();
+  }
+  return bgmState.playlist;
+}
+
+function normalizeTrackIndex(index, playlistLength) {
+  const length = Math.max(0, playlistLength | 0);
+  if (!length) {
+    return 0;
+  }
+  const raw = index | 0;
+  return ((raw % length) + length) % length;
+}
+
+function applyTrack(index) {
+  const playlist = bgmState.playlist || [];
+  const idx = normalizeTrackIndex(index, playlist.length);
+  bgmState.trackIndex = idx;
+  setStored("ttawdtt.bgm.trackIndex", idx);
+  const track = playlist[idx] || {};
+  bgmState.trackTitle = (track.title || "").trim();
+  if (bgmState.audioEl && track.src) {
+    bgmState.audioEl.src = normalizeUrl(track.src);
+  }
+}
+
+async function ensureTrackSelected() {
+  await loadBgmPlaylist();
+  const stored = Number(getStored("ttawdtt.bgm.trackIndex", 0));
+  applyTrack(Number.isFinite(stored) ? stored : 0);
+}
+
+function getCurrentTrackLabel() {
+  const title = (bgmState.trackTitle || "").trim();
+  if (title) {
+    return title;
+  }
+  const playlist = bgmState.playlist || [];
+  const track = playlist[bgmState.trackIndex] || {};
+  const src = String(track.src || "");
+  const basename = src.split("/").pop() || "";
+  return basename ? basename.replace(/\.[a-z0-9]+$/i, "") : "BGM";
+}
+
+function updateNowPlayingUI() {
+  const label = getCurrentTrackLabel();
+  const total = (bgmState.playlist || []).length || 0;
+  const indexText = total ? `${bgmState.trackIndex + 1}/${total}` : "";
+  if (bgmTitleEl) {
+    bgmTitleEl.textContent = indexText ? `${label} · ${indexText}` : label;
+  }
+  if (!bgmState.enabled) {
+    setBgmSubtitle(total ? `歌单循环 · 当前 ${indexText || "-"}` : "歌单循环");
+  }
+}
+
+async function playCurrentTrack() {
+  const audio = ensureBgmAudioGraph();
+  if (!audio) {
+    return;
+  }
+  await ensureTrackSelected();
+  applyTrack(bgmState.trackIndex);
+  updateNowPlayingUI();
+  try {
+    audio.currentTime = 0;
+  } catch (error) {
+    // ignore
+  }
+  audio.loop = false;
+  return audio
+    .play()
+    .then(() => {
+      setBgmSubtitle(`播放中 · ${getCurrentTrackLabel()}`);
+      updateNowPlayingUI();
+    })
+    .catch(() => {
+      setBgmSubtitle("播放失败：需要用户点击或浏览器拦截了播放。");
+    });
+}
+
+async function playNextTrack() {
+  await loadBgmPlaylist();
+  applyTrack(bgmState.trackIndex + 1);
+  updateNowPlayingUI();
+  return playCurrentTrack();
+}
+
+async function playPrevTrack() {
+  await loadBgmPlaylist();
+  applyTrack(bgmState.trackIndex - 1);
+  updateNowPlayingUI();
+  if (bgmState.enabled) {
+    return playCurrentTrack();
+  }
 }
 
 function buildReverbImpulse(context, seconds, decay) {
@@ -1425,16 +1581,7 @@ function startSnowLoop() {
   const volume = Math.min(1, Math.max(0, bgmState.volume));
   bgmState.master.gain.setValueAtTime(Math.max(0.0001, volume), context.currentTime);
   audio.volume = volume;
-  audio.currentTime = audio.currentTime || 0;
-  audio.loop = true;
-  audio
-    .play()
-    .then(() => {
-      setBgmSubtitle("播放中 · かたわれ時");
-    })
-    .catch(() => {
-      setBgmSubtitle("播放失败：需要用户点击或浏览器拦截了播放。");
-    });
+  void playCurrentTrack();
 }
 
 function stopSnowLoop() {
@@ -1480,7 +1627,7 @@ async function toggleBgm() {
 
   if (bgmState.enabled) {
     startSnowLoop();
-    setBgmSubtitle("播放中 · かたわれ時");
+    setBgmSubtitle(`播放中 · ${getCurrentTrackLabel()}`);
   } else {
     stopSnowLoop();
     setBgmSubtitle("已暂停");
@@ -2093,22 +2240,42 @@ function initBgm() {
     });
   }
   updateBgmButton();
-  setBgmSubtitle(bgmState.preferredEnabled ? "上次已开启 · 点击继续播放" : "点击 BGM 播放：かたわれ時");
+  setBgmSubtitle(bgmState.preferredEnabled ? "上次已开启 · 点击继续播放" : "点击 BGM 播放（歌单循环）");
   ensureBgmVisCanvas();
+  void ensureTrackSelected().then(updateNowPlayingUI);
 
   bgmToggle.addEventListener("click", () => {
     toggleBgm();
     openBgmPanel(true);
   });
 
+  if (bgmPrevBtn) {
+    bgmPrevBtn.addEventListener("click", () => {
+      void playPrevTrack();
+      openBgmPanel(true);
+    });
+  }
+  if (bgmNextBtn) {
+    bgmNextBtn.addEventListener("click", () => {
+      void playNextTrack();
+      openBgmPanel(true);
+    });
+  }
+
   bgmRoot.addEventListener("mouseenter", () => {
     openBgmPanel(true);
   });
   bgmRoot.addEventListener("mouseleave", () => {
-    openBgmPanel(false);
+    scheduleCloseBgmPanel();
+  });
+  bgmPanel.addEventListener("mouseenter", () => {
+    openBgmPanel(true);
+  });
+  bgmPanel.addEventListener("mouseleave", () => {
+    scheduleCloseBgmPanel();
   });
   bgmRoot.addEventListener("focusin", () => openBgmPanel(true));
-  bgmRoot.addEventListener("focusout", () => openBgmPanel(false));
+  bgmRoot.addEventListener("focusout", () => scheduleCloseBgmPanel(60));
 
   document.addEventListener("click", (event) => {
     if (!bgmRoot.classList.contains("is-open")) {

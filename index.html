@@ -38,11 +38,15 @@
             </button>
             <div class="bgm-panel" id="bgm-panel" role="dialog" aria-label="背景音乐面板" aria-hidden="true">
               <div class="bgm-panel-header">
-                <p class="bgm-title">雪地钢琴</p>
+                <p class="bgm-title" id="bgm-title">BGM</p>
                 <p class="bgm-subtitle" id="bgm-subtitle">点击 BGM 启动</p>
               </div>
               <canvas class="bgm-vis" id="bgm-vis" width="300" height="124" aria-hidden="true"></canvas>
               <div class="bgm-controls">
+                <div class="bgm-track-controls" aria-label="切歌控制">
+                  <button class="bgm-skip" id="bgm-prev" type="button" aria-label="上一首">上一首</button>
+                  <button class="bgm-skip" id="bgm-next" type="button" aria-label="下一首">下一首</button>
+                </div>
                 <label class="bgm-volume" for="bgm-volume">
                   <span>音量</span>
                   <input id="bgm-volume" type="range" min="0" max="1" step="0.01" value="0.4" />
