@@ -87,7 +87,7 @@ const bgmState = {
   enabled: false,
   preferredEnabled: false,
   volume: 0.4,
-  trackSrc: "assets/music/黄昏之时.mp3",
+  trackSrc: "assets/music/RADWIMPS - かたわれ時 (黄昏之时)_EM.flac",
   audioEl: null,
   mediaSource: null,
   context: null,
@@ -1430,7 +1430,7 @@ function startSnowLoop() {
   audio
     .play()
     .then(() => {
-      setBgmSubtitle("播放中 · 黄昏之时");
+      setBgmSubtitle("播放中 · かたわれ時");
     })
     .catch(() => {
       setBgmSubtitle("播放失败：需要用户点击或浏览器拦截了播放。");
@@ -1480,7 +1480,7 @@ async function toggleBgm() {
 
   if (bgmState.enabled) {
     startSnowLoop();
-    setBgmSubtitle("播放中 · 雪地钢琴");
+    setBgmSubtitle("播放中 · かたわれ時");
   } else {
     stopSnowLoop();
     setBgmSubtitle("已暂停");
@@ -2093,7 +2093,7 @@ function initBgm() {
     });
   }
   updateBgmButton();
-  setBgmSubtitle(bgmState.preferredEnabled ? "上次已开启 · 点击继续播放" : "点击 BGM 播放：黄昏之时");
+  setBgmSubtitle(bgmState.preferredEnabled ? "上次已开启 · 点击继续播放" : "点击 BGM 播放：かたわれ時");
   ensureBgmVisCanvas();
 
   bgmToggle.addEventListener("click", () => {
