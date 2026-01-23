@@ -32,6 +32,24 @@
           <button class="atmos-toggle" id="atmos-toggle" type="button" aria-label="切换氛围">
             雪景
           </button>
+          <div class="bgm" id="bgm" aria-label="背景音乐">
+            <button class="bgm-toggle" id="bgm-toggle" type="button" aria-label="播放或暂停背景音乐">
+              BGM
+            </button>
+            <div class="bgm-panel" id="bgm-panel" role="dialog" aria-label="背景音乐面板" aria-hidden="true">
+              <div class="bgm-panel-header">
+                <p class="bgm-title">雪地钢琴</p>
+                <p class="bgm-subtitle" id="bgm-subtitle">点击 BGM 启动</p>
+              </div>
+              <canvas class="bgm-vis" id="bgm-vis" width="300" height="124" aria-hidden="true"></canvas>
+              <div class="bgm-controls">
+                <label class="bgm-volume" for="bgm-volume">
+                  <span>音量</span>
+                  <input id="bgm-volume" type="range" min="0" max="1" step="0.01" value="0.4" />
+                </label>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </header>

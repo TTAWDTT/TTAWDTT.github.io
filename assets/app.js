@@ -76,6 +76,46 @@ const lightboxPrev = document.getElementById("lightbox-prev");
 const lightboxNext = document.getElementById("lightbox-next");
 const backToTop = document.getElementById("back-to-top");
 
+const bgmRoot = document.getElementById("bgm");
+const bgmToggle = document.getElementById("bgm-toggle");
+const bgmPanel = document.getElementById("bgm-panel");
+const bgmSubtitle = document.getElementById("bgm-subtitle");
+const bgmVisCanvas = document.getElementById("bgm-vis");
+const bgmVolumeInput = document.getElementById("bgm-volume");
+
+const bgmState = {
+  enabled: false,
+  preferredEnabled: false,
+  volume: 0.4,
+  trackSrc: "assets/music/黄昏之时.mp3",
+  audioEl: null,
+  mediaSource: null,
+  context: null,
+  master: null,
+  musicBus: null,
+  compressor: null,
+  reverbIn: null,
+  reverbOut: null,
+  convolver: null,
+  analyser: null,
+  analyserData: null,
+  timeData: null,
+  noiseBuffer: null,
+  visCtx: null,
+  visRaf: 0,
+  nextNoteTime: 0,
+  interval: 0,
+  startedAt: 0,
+  lastChordIndex: -1,
+  nodeRefs: [],
+  vis: {
+    dpr: 1,
+    width: 0,
+    height: 0,
+    particles: []
+  }
+};
+
 const docState = {
   loaded: false,
   loadingPromise: null,
@@ -112,6 +152,26 @@ let keyBindingsBound = false;
 let imageRevealObserver = null;
 let aboutViewState = null;
 let tocClickBound = false;
+
+function getStored(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw === null || raw === undefined) {
+      return fallback;
+    }
+    return JSON.parse(raw);
+  } catch (error) {
+    return fallback;
+  }
+}
+
+function setStored(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    // ignore
+  }
+}
 
 function setActiveNav(routeKey) {
   navLinks.forEach((link) => {
@@ -1019,6 +1079,414 @@ function normalizeUrl(url) {
   }
 }
 
+function openBgmPanel(open) {
+  if (!bgmRoot || !bgmPanel) {
+    return;
+  }
+  bgmRoot.classList.toggle("is-open", Boolean(open));
+  bgmPanel.setAttribute("aria-hidden", open ? "false" : "true");
+  if (open) {
+    if (bgmState.enabled && !bgmState.visRaf) {
+      bgmState.visRaf = window.requestAnimationFrame(drawBgmVisualization);
+    }
+    return;
+  }
+  if (bgmState.visRaf) {
+    window.cancelAnimationFrame(bgmState.visRaf);
+    bgmState.visRaf = 0;
+  }
+}
+
+function setBgmSubtitle(text) {
+  if (bgmSubtitle) {
+    bgmSubtitle.textContent = text || "";
+  }
+}
+
+function updateBgmButton() {
+  if (!bgmToggle) {
+    return;
+  }
+  bgmToggle.classList.toggle("is-playing", bgmState.enabled);
+  bgmToggle.setAttribute("aria-pressed", bgmState.enabled ? "true" : "false");
+}
+
+function readCssVar(name, fallback) {
+  try {
+    const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return value || fallback;
+  } catch (error) {
+    return fallback;
+  }
+}
+
+function ensureAudioContext() {
+  if (bgmState.context) {
+    return bgmState.context;
+  }
+  const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextCtor) {
+    setBgmSubtitle("当前浏览器不支持音频。");
+    return null;
+  }
+  const context = new AudioContextCtor();
+  const master = context.createGain();
+  master.gain.value = 0.0001;
+
+  const musicBus = context.createGain();
+  musicBus.gain.value = 1;
+
+  const compressor = context.createDynamicsCompressor();
+  compressor.threshold.value = -22;
+  compressor.knee.value = 24;
+  compressor.ratio.value = 2.6;
+  compressor.attack.value = 0.004;
+  compressor.release.value = 0.22;
+
+  musicBus.connect(compressor);
+  compressor.connect(master);
+
+  const reverbIn = context.createGain();
+  reverbIn.gain.value = 1;
+  const convolver = context.createConvolver();
+  convolver.buffer = buildReverbImpulse(context, 1.9, 2.4);
+  const reverbOut = context.createGain();
+  reverbOut.gain.value = 0.28;
+  reverbIn.connect(convolver);
+  convolver.connect(reverbOut);
+  reverbOut.connect(compressor);
+
+  const analyser = context.createAnalyser();
+  analyser.fftSize = 1024;
+  analyser.smoothingTimeConstant = 0.9;
+  master.connect(analyser);
+  analyser.connect(context.destination);
+
+  bgmState.context = context;
+  bgmState.master = master;
+  bgmState.musicBus = musicBus;
+  bgmState.compressor = compressor;
+  bgmState.reverbIn = reverbIn;
+  bgmState.reverbOut = reverbOut;
+  bgmState.convolver = convolver;
+  bgmState.analyser = analyser;
+  bgmState.analyserData = new Uint8Array(analyser.frequencyBinCount);
+  bgmState.timeData = new Uint8Array(analyser.fftSize);
+  bgmState.visCtx = bgmVisCanvas ? bgmVisCanvas.getContext("2d") : null;
+  bgmState.noiseBuffer = buildNoiseBuffer(context, 2.0);
+  return context;
+}
+
+function ensureBgmVisCanvas() {
+  if (!bgmVisCanvas || !bgmState.visCtx) {
+    return;
+  }
+  const dpr = window.devicePixelRatio || 1;
+  const cssWidth = bgmVisCanvas.clientWidth || bgmVisCanvas.width;
+  const cssHeight = bgmVisCanvas.clientHeight || bgmVisCanvas.height;
+  const targetWidth = Math.max(1, Math.floor(cssWidth * dpr));
+  const targetHeight = Math.max(1, Math.floor(cssHeight * dpr));
+  if (bgmVisCanvas.width !== targetWidth || bgmVisCanvas.height !== targetHeight) {
+    bgmVisCanvas.width = targetWidth;
+    bgmVisCanvas.height = targetHeight;
+  }
+  bgmState.vis.dpr = dpr;
+  bgmState.vis.width = targetWidth;
+  bgmState.vis.height = targetHeight;
+
+  if (!bgmState.vis.particles.length) {
+    const count = Math.min(70, Math.max(24, Math.floor(cssWidth / 6)));
+    bgmState.vis.particles = Array.from({ length: count }, () => ({
+      x: Math.random() * targetWidth,
+      y: Math.random() * targetHeight,
+      r: 0.8 + Math.random() * 2.1,
+      vx: -0.18 + Math.random() * 0.36,
+      vy: 0.25 + Math.random() * 0.85,
+      drift: -0.35 + Math.random() * 0.7
+    }));
+  }
+}
+
+function avgRange(array, start, end) {
+  const a = array || [];
+  const s = Math.max(0, start | 0);
+  const e = Math.min(a.length, end | 0);
+  if (e <= s) {
+    return 0;
+  }
+  let sum = 0;
+  for (let i = s; i < e; i += 1) {
+    sum += a[i];
+  }
+  return sum / (e - s);
+}
+
+function clamp01(value) {
+  return Math.min(1, Math.max(0, value));
+}
+
+function ensureBgmAudioGraph() {
+  const context = ensureAudioContext();
+  if (!context || !bgmState.musicBus) {
+    return null;
+  }
+
+  if (!bgmState.audioEl) {
+    const audio = document.createElement("audio");
+    audio.preload = "metadata";
+    audio.loop = true;
+    audio.src = normalizeUrl(bgmState.trackSrc);
+    audio.volume = Math.min(1, Math.max(0, bgmState.volume));
+    bgmState.audioEl = audio;
+
+    audio.addEventListener("error", () => {
+      setBgmSubtitle("音频加载失败：请检查文件路径。");
+      bgmState.enabled = false;
+      updateBgmButton();
+    });
+  }
+
+  if (!bgmState.mediaSource) {
+    try {
+      bgmState.mediaSource = context.createMediaElementSource(bgmState.audioEl);
+      bgmState.mediaSource.connect(bgmState.musicBus);
+    } catch (error) {
+      setBgmSubtitle("音频初始化失败（可能重复创建 MediaElementSource）。");
+      return null;
+    }
+  }
+
+  return bgmState.audioEl;
+}
+
+function buildReverbImpulse(context, seconds, decay) {
+  const length = Math.max(1, Math.floor(context.sampleRate * seconds));
+  const impulse = context.createBuffer(2, length, context.sampleRate);
+  for (let c = 0; c < impulse.numberOfChannels; c += 1) {
+    const channel = impulse.getChannelData(c);
+    for (let i = 0; i < length; i += 1) {
+      const t = i / length;
+      const amp = Math.pow(1 - t, decay);
+      channel[i] = (Math.random() * 2 - 1) * amp;
+    }
+  }
+  return impulse;
+}
+
+function buildNoiseBuffer(context, seconds) {
+  const length = Math.max(1, Math.floor(context.sampleRate * seconds));
+  const buffer = context.createBuffer(1, length, context.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < length; i += 1) {
+    data[i] = (Math.random() * 2 - 1) * 0.6;
+  }
+  return buffer;
+}
+
+function stopAllNodes() {
+  bgmState.nodeRefs.forEach((node) => {
+    try {
+      if (typeof node.stop === "function") {
+        node.stop(0);
+      }
+      node.disconnect();
+    } catch (error) {
+      // ignore
+    }
+  });
+  bgmState.nodeRefs = [];
+}
+
+function midiToFreq(midi) {
+  return 440 * Math.pow(2, (midi - 69) / 12);
+}
+
+function createEnvGain(context, time, { attack, decay, sustain, release, gain }) {
+  const g = context.createGain();
+  const a = Math.max(0.001, attack ?? 0.01);
+  const d = Math.max(0.001, decay ?? 0.12);
+  const s = Math.max(0.0001, sustain ?? 0.5);
+  const r = Math.max(0.001, release ?? 0.22);
+  const peak = Math.max(0.0001, gain ?? 0.1);
+  g.gain.setValueAtTime(0.0001, time);
+  g.gain.exponentialRampToValueAtTime(peak, time + a);
+  g.gain.exponentialRampToValueAtTime(Math.max(0.0001, peak * s), time + a + d);
+  g.gain.exponentialRampToValueAtTime(0.0001, time + a + d + r);
+  bgmState.nodeRefs.push(g);
+  return g;
+}
+
+function schedulePianoNote(context, time, midi, velocity, { bright, sustain }) {
+  if (!bgmState.musicBus || !bgmState.reverbIn || !bgmState.noiseBuffer) {
+    return;
+  }
+  const freq = midiToFreq(midi);
+
+  const voiceGain = context.createGain();
+  const amp = Math.max(0.0001, Math.min(1, velocity)) * 0.18;
+  const sustainSeconds = Math.max(0.6, sustain ?? (midi < 55 ? 2.8 : 1.9));
+  voiceGain.gain.setValueAtTime(0.0001, time);
+  voiceGain.gain.exponentialRampToValueAtTime(amp, time + 0.008);
+  voiceGain.gain.exponentialRampToValueAtTime(Math.max(0.0001, amp * 0.42), time + 0.12);
+  voiceGain.gain.exponentialRampToValueAtTime(0.0001, time + sustainSeconds);
+
+  const filter = context.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.setValueAtTime(1200 + (bright ? 2400 : 1400), time);
+  filter.Q.setValueAtTime(0.7, time);
+
+  voiceGain.connect(filter);
+  filter.connect(bgmState.musicBus);
+
+  const send = context.createGain();
+  send.gain.setValueAtTime(bright ? 0.22 : 0.18, time);
+  filter.connect(send);
+  send.connect(bgmState.reverbIn);
+
+  const partials = [
+    { ratio: 1, gain: 1.0 },
+    { ratio: 2, gain: 0.22 },
+    { ratio: 3, gain: 0.12 },
+    { ratio: 4, gain: 0.07 }
+  ];
+
+  partials.forEach((p) => {
+    const g = context.createGain();
+    g.gain.setValueAtTime(0.0001, time);
+    g.gain.exponentialRampToValueAtTime(p.gain, time + 0.008);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0001, p.gain * (p.ratio === 1 ? 0.55 : 0.3)), time + 0.18);
+    g.gain.exponentialRampToValueAtTime(0.0001, time + Math.min(2.4, sustainSeconds + 0.3));
+
+    if (p.ratio === 1) {
+      const oscA = context.createOscillator();
+      oscA.type = "triangle";
+      oscA.frequency.setValueAtTime(freq, time);
+      oscA.detune.setValueAtTime(-3.2, time);
+      const oscB = context.createOscillator();
+      oscB.type = "triangle";
+      oscB.frequency.setValueAtTime(freq, time);
+      oscB.detune.setValueAtTime(3.2, time);
+      oscA.connect(g);
+      oscB.connect(g);
+      g.connect(voiceGain);
+      oscA.start(time);
+      oscB.start(time);
+      oscA.stop(time + sustainSeconds + 0.45);
+      oscB.stop(time + sustainSeconds + 0.45);
+      bgmState.nodeRefs.push(oscA, oscB, g);
+      return;
+    }
+
+    const osc = context.createOscillator();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(freq * p.ratio, time);
+    osc.connect(g);
+    g.connect(voiceGain);
+    osc.start(time);
+    osc.stop(time + sustainSeconds + 0.35);
+    bgmState.nodeRefs.push(osc, g);
+  });
+
+  const hammer = context.createBufferSource();
+  hammer.buffer = bgmState.noiseBuffer;
+  const hammerFilter = context.createBiquadFilter();
+  hammerFilter.type = "bandpass";
+  hammerFilter.frequency.setValueAtTime(freq * 2.2, time);
+  hammerFilter.Q.setValueAtTime(0.9, time);
+  const hammerGain = createEnvGain(context, time, {
+    attack: 0.001,
+    decay: 0.03,
+    sustain: 0.0001,
+    release: 0.04,
+    gain: amp * 0.55
+  });
+  hammer.connect(hammerFilter);
+  hammerFilter.connect(hammerGain);
+  hammerGain.connect(voiceGain);
+  hammer.start(time);
+  hammer.stop(time + 0.12);
+
+  bgmState.nodeRefs.push(voiceGain, filter, send, hammer, hammerFilter);
+}
+
+function schedulePianoChord(context, time, chord, velocity, options) {
+  chord.forEach((midi) => schedulePianoNote(context, time, midi, velocity, options));
+}
+
+function startSnowLoop() {
+  const audio = ensureBgmAudioGraph();
+  if (!audio) {
+    return;
+  }
+  const context = bgmState.context;
+  if (!context || !bgmState.master) {
+    return;
+  }
+  const volume = Math.min(1, Math.max(0, bgmState.volume));
+  bgmState.master.gain.setValueAtTime(Math.max(0.0001, volume), context.currentTime);
+  audio.volume = volume;
+  audio.currentTime = audio.currentTime || 0;
+  audio.loop = true;
+  audio
+    .play()
+    .then(() => {
+      setBgmSubtitle("播放中 · 黄昏之时");
+    })
+    .catch(() => {
+      setBgmSubtitle("播放失败：需要用户点击或浏览器拦截了播放。");
+    });
+}
+
+function stopSnowLoop() {
+  const context = bgmState.context;
+  if (bgmState.interval) {
+    window.clearInterval(bgmState.interval);
+    bgmState.interval = 0;
+  }
+  if (bgmState.audioEl) {
+    try {
+      bgmState.audioEl.pause();
+    } catch (error) {
+      // ignore
+    }
+  }
+  if (context && bgmState.master) {
+    bgmState.master.gain.cancelScheduledValues(context.currentTime);
+    bgmState.master.gain.setValueAtTime(bgmState.master.gain.value || 0.0001, context.currentTime);
+    bgmState.master.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.25);
+  }
+  window.setTimeout(() => {
+    stopAllNodes();
+  }, 400);
+}
+
+async function toggleBgm() {
+  const context = ensureAudioContext();
+  if (!context) {
+    return;
+  }
+  try {
+    if (context.state === "suspended") {
+      await context.resume();
+    }
+  } catch (error) {
+    // ignore
+  }
+
+  bgmState.enabled = !bgmState.enabled;
+  bgmState.preferredEnabled = bgmState.enabled;
+  setStored("ttawdtt.bgm.enabled", bgmState.preferredEnabled);
+  updateBgmButton();
+
+  if (bgmState.enabled) {
+    startSnowLoop();
+    setBgmSubtitle("播放中 · 雪地钢琴");
+  } else {
+    stopSnowLoop();
+    setBgmSubtitle("已暂停");
+  }
+}
+
 function normalizeImageSrc(src) {
   if (!src) {
     return src;
@@ -1424,6 +1892,233 @@ function applyDocMeta(meta) {
     const timeText = `${meta.readingTime} 分钟阅读`;
     headerEls.subtitle.textContent = base ? `${base} · ${timeText}` : timeText;
   }
+}
+
+function drawBgmVisualization() {
+  if (
+    !bgmState.enabled ||
+    !bgmState.analyser ||
+    !bgmState.analyserData ||
+    !bgmState.timeData ||
+    !bgmState.visCtx ||
+    !bgmVisCanvas ||
+    !bgmRoot ||
+    !bgmRoot.classList.contains("is-open")
+  ) {
+    return;
+  }
+
+  ensureBgmVisCanvas();
+  const ctx = bgmState.visCtx;
+  const width = bgmState.vis.width || bgmVisCanvas.width;
+  const height = bgmState.vis.height || bgmVisCanvas.height;
+
+  bgmState.analyser.getByteFrequencyData(bgmState.analyserData);
+  bgmState.analyser.getByteTimeDomainData(bgmState.timeData);
+
+  const bins = bgmState.analyserData;
+  const bass = clamp01(avgRange(bins, 0, 10) / 255);
+  const mid = clamp01(avgRange(bins, 12, 70) / 255);
+  const air = clamp01(avgRange(bins, 80, 160) / 255);
+  const energy = clamp01(0.45 * bass + 0.35 * mid + 0.2 * air);
+
+  const ink = readCssVar("--ink", "#141413");
+  const muted = readCssVar("--muted", "#6f6b63");
+  const accent = readCssVar("--accent", "#d97757");
+  const accent2 = readCssVar("--accent-2", "#6a9bcc");
+  const accent3 = readCssVar("--accent-3", "#788c5d");
+  const isDark = (document.documentElement.dataset.theme || "light") === "dark";
+
+  ctx.clearRect(0, 0, width, height);
+
+  const bg = ctx.createLinearGradient(0, 0, 0, height);
+  if (isDark) {
+    bg.addColorStop(0, "rgba(250,249,245,0.04)");
+    bg.addColorStop(1, "rgba(250,249,245,0.01)");
+  } else {
+    bg.addColorStop(0, "rgba(20,20,19,0.04)");
+    bg.addColorStop(1, "rgba(20,20,19,0.01)");
+  }
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, width, height);
+
+  const vignette = ctx.createRadialGradient(width * 0.5, height * 0.45, 10, width * 0.5, height * 0.5, height);
+  vignette.addColorStop(0, "rgba(0,0,0,0)");
+  vignette.addColorStop(1, isDark ? "rgba(0,0,0,0.45)" : "rgba(0,0,0,0.06)");
+  ctx.fillStyle = vignette;
+  ctx.fillRect(0, 0, width, height);
+
+  const particles = bgmState.vis.particles || [];
+  const driftBoost = (bass * 1.2 + 0.2) * 0.8;
+  ctx.save();
+  ctx.globalAlpha = isDark ? 0.6 : 0.42;
+  ctx.fillStyle = isDark ? "rgba(250,249,245,0.75)" : "rgba(20,20,19,0.35)";
+  particles.forEach((p) => {
+    p.x += (p.vx + p.drift * driftBoost) * (1 + energy * 0.9);
+    p.y += p.vy * (1 + bass * 1.4);
+    if (p.y > height + 8) {
+      p.y = -8;
+      p.x = Math.random() * width;
+    }
+    if (p.x > width + 8) {
+      p.x = -8;
+    }
+    if (p.x < -8) {
+      p.x = width + 8;
+    }
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r * (0.9 + bass * 0.8), 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.restore();
+
+  const time = bgmState.timeData;
+  const padding = Math.floor(Math.min(width, height) * 0.12);
+  const ribbonTop = Math.floor(height * 0.24);
+  const ribbonBottom = Math.floor(height * 0.76);
+  const ribbonMid = (ribbonTop + ribbonBottom) * 0.5;
+  const ribbonAmp = (ribbonBottom - ribbonTop) * (0.18 + mid * 0.24);
+
+  ctx.save();
+  ctx.lineWidth = Math.max(1, Math.floor((bgmState.vis.dpr || 1) * 1.2));
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.shadowColor = accent2;
+  ctx.shadowBlur = 14 * (0.6 + energy);
+  const grad = ctx.createLinearGradient(padding, 0, width - padding, 0);
+  grad.addColorStop(0, accent3);
+  grad.addColorStop(0.55, accent2);
+  grad.addColorStop(1, accent);
+  ctx.strokeStyle = grad;
+  ctx.globalAlpha = isDark ? 0.9 : 0.8;
+
+  ctx.beginPath();
+  const samples = 140;
+  for (let i = 0; i < samples; i += 1) {
+    const t = i / (samples - 1);
+    const idx = Math.floor(t * (time.length - 1));
+    const v = (time[idx] - 128) / 128;
+    const x = padding + t * (width - padding * 2);
+    const y = ribbonMid + v * ribbonAmp;
+    if (i === 0) {
+      ctx.moveTo(x, y);
+    } else {
+      ctx.lineTo(x, y);
+    }
+  }
+  ctx.stroke();
+  ctx.restore();
+
+  const cx = width * 0.5;
+  const cy = height * 0.56;
+  const radius = Math.min(width, height) * 0.22;
+  const bars = 64;
+  const step = Math.max(1, Math.floor(bins.length / bars));
+  const baseAlpha = isDark ? 0.85 : 0.65;
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(-Math.PI / 2);
+  ctx.lineCap = "round";
+  ctx.shadowColor = accent2;
+  ctx.shadowBlur = 16 * (0.4 + energy);
+  for (let i = 0; i < bars; i += 1) {
+    const b = bins[i * step] / 255;
+    const a = (i / bars) * Math.PI * 2;
+    const len = (Math.min(width, height) * 0.09) * (0.22 + Math.pow(b, 1.15));
+    const x0 = Math.cos(a) * radius;
+    const y0 = Math.sin(a) * radius;
+    const x1 = Math.cos(a) * (radius + len);
+    const y1 = Math.sin(a) * (radius + len);
+
+    ctx.globalAlpha = baseAlpha * (0.55 + b * 0.75);
+    ctx.strokeStyle = i % 3 === 0 ? accent : i % 3 === 1 ? accent2 : accent3;
+    ctx.lineWidth = Math.max(1, Math.floor((bgmState.vis.dpr || 1) * (1.0 + b * 0.9)));
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);
+    ctx.lineTo(x1, y1);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  ctx.save();
+  ctx.globalAlpha = isDark ? 0.9 : 0.8;
+  ctx.fillStyle = ink;
+  ctx.font = `600 ${Math.max(12, Math.floor(12 * (bgmState.vis.dpr || 1)))}px var(--font-display)`;
+  ctx.fillText("Huanghun", Math.floor(padding), Math.floor(height - padding * 0.55));
+  ctx.globalAlpha = 0.55;
+  ctx.fillStyle = muted;
+  ctx.font = `500 ${Math.max(10, Math.floor(10 * (bgmState.vis.dpr || 1)))}px var(--font-display)`;
+  ctx.fillText("twilight visual", Math.floor(padding), Math.floor(height - padding * 0.2));
+  ctx.restore();
+
+  bgmState.visRaf = window.requestAnimationFrame(drawBgmVisualization);
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  const radius = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + w - radius, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+  ctx.lineTo(x + w, y + h - radius);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+  ctx.lineTo(x + radius, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function initBgm() {
+  if (!bgmToggle || !bgmRoot || !bgmPanel) {
+    return;
+  }
+  bgmState.preferredEnabled = Boolean(getStored("ttawdtt.bgm.enabled", false));
+  bgmState.enabled = false;
+  bgmState.volume = Number(getStored("ttawdtt.bgm.volume", 0.4));
+  if (bgmVolumeInput) {
+    bgmVolumeInput.value = String(Math.min(1, Math.max(0, bgmState.volume)));
+    bgmVolumeInput.addEventListener("input", () => {
+      const next = Number(bgmVolumeInput.value);
+      bgmState.volume = Number.isFinite(next) ? next : 0.4;
+      setStored("ttawdtt.bgm.volume", bgmState.volume);
+      if (bgmState.audioEl) {
+        bgmState.audioEl.volume = Math.min(1, Math.max(0, bgmState.volume));
+      }
+      if (bgmState.master && bgmState.context) {
+        bgmState.master.gain.setValueAtTime(Math.max(0.0001, bgmState.volume), bgmState.context.currentTime);
+      }
+    });
+  }
+  updateBgmButton();
+  setBgmSubtitle(bgmState.preferredEnabled ? "上次已开启 · 点击继续播放" : "点击 BGM 播放：黄昏之时");
+  ensureBgmVisCanvas();
+
+  bgmToggle.addEventListener("click", () => {
+    toggleBgm();
+    openBgmPanel(true);
+  });
+
+  bgmRoot.addEventListener("mouseenter", () => {
+    openBgmPanel(true);
+  });
+  bgmRoot.addEventListener("mouseleave", () => {
+    openBgmPanel(false);
+  });
+  bgmRoot.addEventListener("focusin", () => openBgmPanel(true));
+  bgmRoot.addEventListener("focusout", () => openBgmPanel(false));
+
+  document.addEventListener("click", (event) => {
+    if (!bgmRoot.classList.contains("is-open")) {
+      return;
+    }
+    if (bgmRoot.contains(event.target)) {
+      return;
+    }
+    openBgmPanel(false);
+  });
 }
 
 function initLightbox() {
@@ -2098,6 +2793,7 @@ function initPage() {
       applyAtmosphere(next);
     });
   }
+  initBgm();
   if (backToTop) {
     backToTop.addEventListener("click", () => {
       window.scrollTo({ top: 0, behavior: "smooth" });
