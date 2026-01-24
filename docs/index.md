@@ -3,6 +3,8 @@
 *这里是我的文章目录。*
 
 - [想做一个静态页面框架](docs/想做一个静态页面框架.md)
+- [近况2026-1-24](docs/近况2026-1-24.md)
+- [我与Multi-agent](docs/我与Multi-agent.md)
 - [该页面的后续工作](docs/该页面的后续工作.md)
 - [Wok，写这个是因为我真破防了](docs/Latest20260122.md)
 - [Codex 的自述](docs/codex-self.md)
