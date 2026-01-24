@@ -136,6 +136,11 @@ const bgmState = {
     notes: [],
     noteAccumulator: 0,
     reducedMotion: false,
+    dpr: 1,
+    dprCap: 1.5,
+    noteSprites: new Map(),
+    blobSprites: new Map(),
+    grainPatterns: new Map(),
     frameInterval: 1000 / 30
   }
 };
@@ -1292,6 +1297,108 @@ function clamp01(value) {
   return Math.min(1, Math.max(0, value));
 }
 
+function create2dCanvas(width, height) {
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.floor(width));
+  canvas.height = Math.max(1, Math.floor(height));
+  return canvas;
+}
+
+function getBgmBlobSprite(color) {
+  const bg = bgmState.bg;
+  if (!bg || !bg.blobSprites) {
+    return null;
+  }
+  const key = String(color || "");
+  const existing = bg.blobSprites.get(key);
+  if (existing) {
+    return existing;
+  }
+  const size = 256;
+  const canvas = create2dCanvas(size, size);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    return null;
+  }
+  const cx = size * 0.5;
+  const cy = size * 0.5;
+  const g = ctx.createRadialGradient(cx, cy, size * 0.06, cx, cy, size * 0.5);
+  g.addColorStop(0, key || "rgba(255,255,255,0.8)");
+  g.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, size, size);
+  bg.blobSprites.set(key, canvas);
+  return canvas;
+}
+
+function getBgmNoteSprite(color) {
+  const bg = bgmState.bg;
+  if (!bg || !bg.noteSprites) {
+    return null;
+  }
+  const key = String(color || "");
+  const existing = bg.noteSprites.get(key);
+  if (existing) {
+    return existing;
+  }
+  const baseR = 12;
+  const headR = Math.max(5, baseR * 0.75);
+  const stemH = headR * 2.9;
+  const yMin = -stemH;
+  const yMax = headR * 0.78;
+  const centerY = (yMin + yMax) * 0.5;
+  const size = 160;
+  const canvas = create2dCanvas(size, size);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    return null;
+  }
+  // Center the note's bounds, so later rotation looks natural.
+  ctx.translate(size * 0.5, size * 0.5 - centerY);
+  drawEggNote(ctx, 0, 0, baseR, key, 1);
+  const sprite = { canvas, baseR, size };
+  bg.noteSprites.set(key, sprite);
+  return sprite;
+}
+
+function getBgmGrainPattern(isDark) {
+  const bg = bgmState.bg;
+  if (!bg || !bg.grainPatterns || !bg.ctx) {
+    return null;
+  }
+  const key = isDark ? "dark" : "light";
+  const existing = bg.grainPatterns.get(key);
+  if (existing) {
+    return existing;
+  }
+  const size = 96;
+  const canvas = create2dCanvas(size, size);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    return null;
+  }
+  const img = ctx.createImageData(size, size);
+  const data = img.data;
+  const color = isDark ? 250 : 20;
+  for (let i = 0; i < data.length; i += 4) {
+    if (Math.random() < 0.06) {
+      data[i] = color;
+      data[i + 1] = color;
+      data[i + 2] = color;
+      data[i + 3] = 80 + Math.floor(Math.random() * 120);
+    } else {
+      data[i + 3] = 0;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  const pattern = bg.ctx.createPattern(canvas, "repeat");
+  if (!pattern) {
+    return null;
+  }
+  bg.grainPatterns.set(key, pattern);
+  return pattern;
+}
+
 function initBgmBackground() {
   if (!bgmBgCanvas) {
     return;
@@ -1312,7 +1419,9 @@ function resizeBgmBackground() {
   if (!bgmBgCanvas || !bgmState.bg.ctx) {
     return;
   }
-  const dpr = window.devicePixelRatio || 1;
+  const dprRaw = window.devicePixelRatio || 1;
+  const dprCap = bgmState.bg.reducedMotion ? 1.25 : bgmState.bg.dprCap || 1.5;
+  const dpr = Math.min(dprRaw, dprCap);
   const width = window.innerWidth;
   const height = window.innerHeight;
   bgmBgCanvas.width = Math.floor(width * dpr);
@@ -1320,6 +1429,7 @@ function resizeBgmBackground() {
   bgmBgCanvas.style.width = `${width}px`;
   bgmBgCanvas.style.height = `${height}px`;
   bgmState.bg.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  bgmState.bg.dpr = dpr;
 
   if (!bgmState.bg.blobs.length) {
     bgmState.bg.blobs = [
@@ -1427,17 +1537,15 @@ function stepBgmBackground(timestamp) {
     if (blob.y > height + blob.r) blob.y = -blob.r;
 
     const r = blob.r * (0.8 + energy * 0.65);
-    const g = ctx.createRadialGradient(blob.x, blob.y, r * 0.1, blob.x, blob.y, r);
     const alpha = (isDark ? 0.12 : 0.07) * (0.55 + energy);
-    g.addColorStop(0, colors[index]);
-    g.addColorStop(1, "rgba(0,0,0,0)");
+    const sprite = getBgmBlobSprite(colors[index]);
+    if (!sprite) {
+      return;
+    }
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
     ctx.globalAlpha = alpha;
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.arc(blob.x, blob.y, r, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.drawImage(sprite, blob.x - r, blob.y - r, r * 2, r * 2);
     ctx.restore();
   });
 
@@ -1465,11 +1573,17 @@ function stepBgmBackground(timestamp) {
       if (note.x > width + 40) note.x = -40;
 
       const localAlpha = note.alpha * (isDark ? 1.05 : 0.9) * (0.55 + energy * 0.95);
+      const sprite = getBgmNoteSprite(note.color);
+      if (!sprite) {
+        return;
+      }
+      const scale = note.r / sprite.baseR;
+      const size = sprite.size * scale;
       ctx.save();
       ctx.globalAlpha = localAlpha;
       ctx.translate(note.x, note.y);
       ctx.rotate(note.rot);
-      drawEggNote(ctx, 0, 0, note.r, note.color, 0.2 + energy * 0.75);
+      ctx.drawImage(sprite.canvas, -size * 0.5, -size * 0.5, size, size);
       ctx.restore();
     });
     ctx.restore();
@@ -1478,12 +1592,12 @@ function stepBgmBackground(timestamp) {
 
   // Subtle film grain.
   ctx.save();
-  ctx.globalAlpha = isDark ? 0.035 : 0.025;
-  ctx.fillStyle = isDark ? "rgba(250,249,245,1)" : "rgba(20,20,19,1)";
-  for (let i = 0; i < 140; i += 1) {
-    const x = Math.random() * width;
-    const y = Math.random() * height;
-    ctx.fillRect(x, y, 1, 1);
+  ctx.globalAlpha = isDark ? 0.04 : 0.03;
+  const grain = getBgmGrainPattern(isDark);
+  if (grain) {
+    ctx.translate(Math.random() * 40, Math.random() * 40);
+    ctx.fillStyle = grain;
+    ctx.fillRect(-60, -60, width + 120, height + 120);
   }
   ctx.restore();
 
