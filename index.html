@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="assets/styles.css?v=18">
   </head>
   <body>
+    <canvas class="bgm-bg-canvas" id="bgm-bg-canvas" aria-hidden="true"></canvas>
     <canvas class="snow-canvas" id="snow-canvas" aria-hidden="true"></canvas>
     <header class="site-header">
       <div class="header-inner">
@@ -136,8 +137,26 @@
       ↑
     </button>
 
+    <div class="egg-modal" id="egg-modal" aria-hidden="true" role="dialog" aria-label="彩蛋小游戏">
+      <div class="egg-card" role="document">
+        <div class="egg-header">
+          <p class="egg-title">彩蛋：捡音符</p>
+          <button class="egg-close" id="egg-close" type="button" aria-label="关闭">×</button>
+        </div>
+        <p class="egg-hint">方向键/WASD 移动，Shift 冲刺（会过热），捡亮点，躲开暗点。</p>
+        <canvas class="egg-canvas" id="egg-canvas" width="520" height="320" aria-hidden="true"></canvas>
+        <div class="egg-footer">
+          <div class="egg-stats">
+            <span id="egg-score">Score 0</span>
+            <span id="egg-best">Best 0</span>
+          </div>
+          <button class="egg-restart" id="egg-restart" type="button">重新开始</button>
+        </div>
+      </div>
+    </div>
+
     <noscript>此页面需要启用 JavaScript 才能渲染内容。</noscript>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="assets/app.js?v=19"></script>
+    <script src="assets/app.js?v=22"></script>
   </body>
 </html>
