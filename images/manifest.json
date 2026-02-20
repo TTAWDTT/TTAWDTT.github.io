@@ -22,7 +22,10 @@
         {"src": "images/Daily/smoke.jpg", "caption": "smoke", "notes": "考完历史抽中南海"},
         {"src": "images/Daily/mixuebingcheng.jpg", "caption": "小冰淇淋", "notes": "上海三块钱，老家卖两块"},
         {"src": "images/Daily/kaohongshu.jpg", "caption": "烤红薯", "notes": "唔，有点悲伤的故事"},
-        {"src": "images/Daily/heiyabao.jpg", "caption": "黑鸭煲", "notes": "好吃"}
+        {"src": "images/Daily/heiyabao.jpg", "caption": "黑鸭煲", "notes": "好吃"},
+        {"src": "images/Daily/千恋万花.png", "caption": "千恋万花！", "notes": "我也要玩galgame~"},
+        {"src": "images/Love/anime.png", "caption": "动画~", "notes": "做的动画被yetone上架喽~"},
+        {"src": "images/Love/sama.png", "caption": "sama(●'◡'●)", "notes": "自己搓出来的浓眉白毛妹~"}
       ]
     },
     {
@@ -46,7 +49,21 @@
         {"src": "images/works/codepulse.png", "caption": "codepulse", "notes": "分析代码提交的小玩具~"},
         {"src": "images/works/heroui.jpg", "caption": "HeroUI", "notes": "这个东西太方便了！"},
         {"src": "images/works/voidkings.jpg", "caption": "VoidKings", "notes": "小游戏哦"},
-        {"src": "images/works/skillwriter.png", "caption": "SkillWriter", "notes": "这个项目，承载了太多过往……"}
+        {"src": "images/works/skillwriter.png", "caption": "SkillWriter", "notes": "这个项目，承载了太多过往……"},
+        {"src": "images/works/Aelin.png", "caption": "Aelin", "notes": "很好看的项目~"}
+      ]
+    },
+    {
+      "title": "我的青春恋爱物语果然有问题",
+      "notes": "神作啊，神作！后面我要单独给它做一个page，神作啊！",
+      "photos":[
+        {"src": "images/我的青春恋爱物语果然有问题/1.jpg", "caption": "wink的雪乃", "notes": ""},
+        {"src": "images/我的青春恋爱物语果然有问题/2.jpg", "caption": "害羞的八幡", "notes": ""},
+        {"src": "images/我的青春恋爱物语果然有问题/3.jpg", "caption": "鼓包的结衣", "notes": ""},
+        {"src": "images/我的青春恋爱物语果然有问题/4.jpg", "caption": "~", "notes": ""},
+        {"src": "images/我的青春恋爱物语果然有问题/5.jpg", "caption": "合影", "notes": ""},
+        {"src": "images/我的青春恋爱物语果然有问题/6.jpg", "caption": "合影！", "notes": ""},
+        {"src": "images/我的青春恋爱物语果然有问题/7.jpg", "caption": "合影！！", "notes": ""}
       ]
     }
   ],
