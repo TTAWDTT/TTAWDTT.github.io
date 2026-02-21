@@ -429,7 +429,7 @@ function normalizeDocLink(link) {
 function initMarked() {
   if (window.marked && typeof window.marked.setOptions === "function") {
     const renderer = new window.marked.Renderer();
-    renderer.br = () => "<br><br>";
+    renderer.br = () => "<br>";
     window.marked.setOptions({
       mangle: false,
       headerIds: true,
