@@ -5,7 +5,7 @@ Static GitHub Pages site powered by a single HTML entry and markdown content. It
 ## Structure
 
 - `index.html`: App shell and routes.
-- `assets/app.js`: Routing, markdown rendering, TOC, reading progress, albums, lightbox.
+- `assets/app/*.js`: Modular frontend scripts (core, docs, BGM, images, router bootstrap).
 - `assets/styles.css`: Theme tokens, layout, and component styles.
 - `docs/`: Articles, plus `docs/index.md` as the source of truth for the doc list.
 - `content/`: About page markdown and related assets.
