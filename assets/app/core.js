@@ -93,12 +93,6 @@ const bgmVolumeInput = document.getElementById("bgm-volume");
 const bgmPrevBtn = document.getElementById("bgm-prev");
 const bgmNextBtn = document.getElementById("bgm-next");
 const bgmBgCanvas = document.getElementById("bgm-bg-canvas");
-const eggModal = document.getElementById("egg-modal");
-const eggCanvas = document.getElementById("egg-canvas");
-const eggClose = document.getElementById("egg-close");
-const eggRestart = document.getElementById("egg-restart");
-const eggScoreEl = document.getElementById("egg-score");
-const eggBestEl = document.getElementById("egg-best");
 
 const bgmState = {
   enabled: false,
@@ -264,7 +258,6 @@ let imageRevealObserver = null;
 let aboutViewState = null;
 let tocClickBound = false;
 let bgmCloseTimer = 0;
-let eggState = null;
 
 function getStored(key, fallback) {
   return storage.getJson(key, fallback);

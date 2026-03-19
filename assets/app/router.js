@@ -123,7 +123,6 @@ function initPage() {
   applyAtmosphere(getPreferredAtmosphere());
   initLightbox();
   initBgmBackground();
-  initEggGame();
   if (!scrollBound) {
     window.addEventListener("scroll", updateScrollUI, { passive: true });
     scrollBound = true;
