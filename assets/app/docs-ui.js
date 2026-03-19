@@ -218,6 +218,21 @@ function bindTocClicks() {
   tocClickBound = true;
 }
 
+function setupTocToggle() {
+  const toggle = document.getElementById("doc-toc-toggle");
+  if (!tocEl || !toggle) {
+    return;
+  }
+  toggle.addEventListener("click", () => {
+    tocEl.classList.add("open");
+  });
+  tocEl.addEventListener("click", (event) => {
+    if (event.target === tocEl) {
+      tocEl.classList.remove("open");
+    }
+  });
+}
+
 function setupReadingProgress(active) {
   if (!readingProgressEl) {
     return;

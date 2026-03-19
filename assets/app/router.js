@@ -123,6 +123,7 @@ function initPage() {
   applyAtmosphere(getPreferredAtmosphere());
   initLightbox();
   initBgmBackground();
+  setupTocToggle();
   if (!scrollBound) {
     window.addEventListener("scroll", updateScrollUI, { passive: true });
     scrollBound = true;
