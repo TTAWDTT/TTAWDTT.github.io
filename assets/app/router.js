@@ -63,6 +63,9 @@ async function renderRoute() {
         rewriteAssets(contentEl, path);
         setupCopyButtons();
         bindLightbox(contentEl);
+        if (route.mdPath === "docs/技术文章.md") {
+          await renderTechIndex();
+        }
         headings = buildTocFromContent();
       }
       setupTocObserver(headings);

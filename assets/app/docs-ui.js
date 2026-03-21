@@ -146,6 +146,45 @@ function renderBacklinks(meta) {
   `;
 }
 
+async function renderTechIndex() {
+  if (!contentEl) {
+    return;
+  }
+  await ensureDocState();
+  const techDocs = docState.list.filter((item) => {
+    const tags = (item.tags || []).map((tag) => String(tag).toLowerCase());
+    return tags.includes("技术") || tags.includes("tech");
+  });
+  if (!techDocs.length) {
+    return;
+  }
+  const listHtml = techDocs
+    .map((item) => {
+      const slug = getDocSlug(item.path);
+      const tags = item.tags && item.tags.length ? item.tags.join(" · ") : "";
+      const time = item.readingTime ? `${item.readingTime} 分钟` : "";
+      const date = item.date || "";
+      const meta = [date, time, tags].filter(Boolean).join(" · ");
+      return `
+        <a href="#/docs/${slug}">
+          ${escapeHtml(item.title)}
+          <span>${escapeHtml(item.summary)}${meta ? ` · ${escapeHtml(meta)}` : ""}</span>
+        </a>
+      `;
+    })
+    .join("");
+  const sectionHtml = `
+    <hr>
+    <section class="doc-tech-index">
+      <h2>技术文章</h2>
+      <div class="doc-search-results">
+        ${listHtml}
+      </div>
+    </section>
+  `;
+  contentEl.insertAdjacentHTML("beforeend", sectionHtml);
+}
+
 function buildTocFromContent() {
   if (!tocBodyEl || !tocEl) {
     return [];
@@ -398,4 +437,3 @@ function applyDocMeta(meta) {
     headerEls.subtitle.textContent = base ? `${base} · ${timeText}` : timeText;
   }
 }
-

@@ -8,6 +8,7 @@
 - [杂事2026-1-25](docs/杂事2026-1-25.md)
 - [近况2026-1-24](docs/近况2026-1-24.md)
 - [我与Multi-agent](docs/我与Multi-agent.md)
+- [技术文章（分类索引）](docs/技术文章.md)
 - [该页面的后续工作](docs/该页面的后续工作.md)
 - [Wok，写这个是因为我真破防了](docs/Latest20260122.md)
 - [Codex 的自述](docs/codex-self.md)
