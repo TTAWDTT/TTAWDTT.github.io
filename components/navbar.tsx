@@ -5,7 +5,7 @@ import clsx from "clsx";
 
 import { siteConfig } from "@/config/site";
 import { ThemeSwitch } from "@/components/theme-switch";
-import { GithubIcon, Logo } from "@/components/icons";
+import { GithubIcon } from "@/components/icons";
 
 export const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -15,7 +15,6 @@ export const Navbar = () => {
       <header className="mx-auto flex h-16 max-w-[1280px] items-center justify-between gap-4 px-6">
         <div className="flex items-center gap-4">
           <NextLink className="flex items-center gap-1" href="/">
-            <Logo />
             <p className="font-bold text-inherit">{siteConfig.name}</p>
           </NextLink>
           <ul className="hidden lg:flex gap-4 ml-2">
@@ -36,6 +35,14 @@ export const Navbar = () => {
         </div>
 
         <div className="hidden sm:flex items-center gap-2">
+          <NextLink aria-label="Home" href="/">
+            <img
+              alt=""
+              aria-hidden="true"
+              className="h-9 w-9 rounded-full object-cover"
+              src="/logo.png"
+            />
+          </NextLink>
           <Link
             aria-label="Github"
             href={siteConfig.links.github}
@@ -48,6 +55,14 @@ export const Navbar = () => {
         </div>
 
         <div className="flex sm:hidden items-center gap-2">
+          <NextLink aria-label="Home" href="/">
+            <img
+              alt=""
+              aria-hidden="true"
+              className="h-9 w-9 rounded-full object-cover"
+              src="/logo.png"
+            />
+          </NextLink>
           <Link
             aria-label="Github"
             href={siteConfig.links.github}

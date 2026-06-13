@@ -1,5 +1,5 @@
 import { siteConfig } from "@/config/site";
-import { title, subtitle } from "@/components/primitives";
+import { subtitle } from "@/components/primitives";
 import { GithubIcon } from "@/components/icons";
 import DefaultLayout from "@/layouts/default";
 
@@ -7,13 +7,14 @@ export default function IndexPage() {
   return (
     <DefaultLayout>
       <section className="flex flex-col items-center justify-center gap-4 py-8 md:py-10">
-        <div className="inline-block max-w-xl text-center justify-center">
-          <span className={title()}>TTAWDTT&nbsp;</span>
-          <span className={title({ color: "blue" })}>写作与实验&nbsp;</span>
-          <br />
-          <span className={title()}>慢慢整理那些正在发生的想法。</span>
-          <div className={subtitle({ class: "mt-4" })}>
-            文章、笔记、项目碎片和一些认真生活的记录。
+        <div className="flex max-w-xl flex-col items-center text-center">
+          <img
+            alt="TTAWDTT"
+            className="h-40 w-40 rounded-full object-cover md:h-56 md:w-56"
+            src="/logo.png"
+          />
+          <div className={subtitle({ class: "mt-6 text-2xl md:text-3xl" })}>
+            TTAWDTT 写作与实验，慢慢整理那些正在发生的想法。
           </div>
         </div>
 
