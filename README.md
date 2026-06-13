@@ -1,41 +1,38 @@
 # TTAWDTT.github.io
 
-Static GitHub Pages site powered by a single HTML entry and markdown content. It uses hash-based routing, an album manifest, and a light/dark + atmosphere toggle.
+Personal site built with Next.js 16, HeroUI v3, Tailwind CSS v4, and Bun.
 
-## Structure
+## Development
 
-- `index.html`: App shell and routes.
-- `assets/app/*.js`: Modular frontend scripts (core, docs, BGM, images, router bootstrap).
-- `assets/styles.css`: Theme tokens, layout, and component styles.
-- `docs/`: Articles, plus `docs/index.md` as the source of truth for the doc list.
-- `content/`: About page markdown and related assets.
-- `images/`: Album assets and `images/manifest.json`.
-- `scripts/`: Helper scripts (optional; currently empty).
+```bash
+bun install
+bun run dev
+```
 
-## Content workflow
+## Blog Editing
 
-1. Write a new post in `docs/*.md`.
-2. Add it to `docs/index.md` (drives the home list, prev/next, and search).
-3. Edit `content/aboutme.md` for the About page.
-4. Update `images/manifest.json` for the album view.
+Blog content lives in one folder:
 
-## Markdown features
+```text
+content/blog
+```
 
-- Frontmatter (optional): `title`, `date`, `tags`, `series`, `order`, `summary`.
-- Obsidian-style embeds: `![[image.jpg]]` and `[[doc|text]]`.
-- Callouts: blockquote lines like `[!NOTE] Title`.
+Add or edit `.md` files there. The Blog page reads that folder at build time, lists the files in the left sidebar, and creates a page for each post.
 
-## Local preview
+Each post title comes from the first `# Heading` in the file. If a file has no heading, the file name is used.
 
-Open `index.html` directly in a browser, or serve the folder with any static server.
+```bash
+bun run build
+```
 
 ## Deployment
 
-Push to GitHub Pages. No build step required.
+GitHub Pages is deployed by `.github/workflows/pages.yml` on every push to `main`.
 
-## RSS
+```bash
+bun run build
+```
 
-- Output file: `feed.xml`
-- Generate locally: `SITE_URL="https://ttawdtt.github.io/" node scripts/generate-rss.mjs`
-- Commit the updated `feed.xml` so GitHub Pages can serve it.
-- Options: `RSS_MAX_ITEMS=50` and `RSS_MODE=summary|full`
+## License
+
+Licensed under the [MIT license](./LICENSE).
