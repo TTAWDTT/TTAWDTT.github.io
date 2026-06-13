@@ -4,7 +4,8 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack --hostname 127.0.0.1",
+    "dev:turbo": "next dev --turbo --hostname 127.0.0.1",
     "build": "next build",
     "start": "next start",
     "lint": "eslint --fix"

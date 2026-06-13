@@ -9,6 +9,16 @@ bun install
 bun run dev
 ```
 
+Open the local site at `http://127.0.0.1:3000` or `http://localhost:3000`.
+Do not open `0.0.0.0`; it is a bind address, not a browser target.
+
+The default dev script uses webpack for a steadier Windows local preview. If you
+want to test Turbopack explicitly, run:
+
+```bash
+bun run dev:turbo
+```
+
 ## Blog Editing
 
 Blog content lives in one folder:
