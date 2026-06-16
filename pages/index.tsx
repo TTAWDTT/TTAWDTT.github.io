@@ -14,7 +14,7 @@ export default function IndexPage() {
             src="/logo.png"
           />
           <div className={subtitle({ class: "mt-6 text-2xl md:text-3xl" })}>
-            TTAWDTT 写作与实验，慢慢整理那些正在发生的想法。
+            你好，我是TTAWDTT（Zhen Luo）
           </div>
         </div>
 
@@ -36,16 +36,6 @@ export default function IndexPage() {
           </a>
         </div>
 
-        <div className="mt-8">
-          <div className="flex items-center gap-2 rounded-xl bg-surface shadow-surface px-4 py-2">
-            <pre className="text-sm font-medium font-mono">
-              Add posts in{" "}
-              <code className="px-2 py-1 h-fit font-mono font-normal inline whitespace-nowrap rounded-sm bg-accent/20 text-accent text-sm">
-                content/blog
-              </code>
-            </pre>
-          </div>
-        </div>
       </section>
     </DefaultLayout>
   );
