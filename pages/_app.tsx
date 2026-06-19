@@ -2,7 +2,6 @@ import type { AppProps } from "next/app";
 
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 
-import { fontSans, fontMono } from "@/config/fonts";
 import "@/styles/globals.css";
 
 export default function App({ Component, pageProps }: AppProps) {
@@ -12,8 +11,3 @@ export default function App({ Component, pageProps }: AppProps) {
     </NextThemesProvider>
   );
 }
-
-export const fonts = {
-  sans: fontSans.style.fontFamily,
-  mono: fontMono.style.fontFamily,
-};

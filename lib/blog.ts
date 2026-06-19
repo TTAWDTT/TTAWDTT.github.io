@@ -19,14 +19,14 @@ export function getBlogSlugs() {
 
   return fs
     .readdirSync(blogDirectory)
-    .filter((fileName) => fileName.endsWith(".md"))
+    .filter((fileName) => fileName.toLowerCase().endsWith(".md"))
     .sort((a, b) => a.localeCompare(b, "zh-CN"))
-    .map((fileName) => fileName.replace(/\.md$/, ""));
+    .map((fileName) => fileName.replace(/\.md$/i, ""));
 }
 
 export function getBlogPosts(): BlogPostMeta[] {
   return getBlogSlugs().map((slug) => {
-    const markdown = readPost(slug);
+    const markdown = stripFrontmatter(readPost(slug));
 
     return {
       slug,
@@ -37,7 +37,7 @@ export function getBlogPosts(): BlogPostMeta[] {
 }
 
 export function getBlogPost(slug: string): BlogPost {
-  const markdown = readPost(slug);
+  const markdown = stripFrontmatter(readPost(slug));
 
   return {
     slug,
@@ -51,7 +51,15 @@ function readPost(slug: string) {
   const safeSlug = slug.replace(/[\\/]/g, "");
   const filePath = path.join(blogDirectory, `${safeSlug}.md`);
 
-  return fs.readFileSync(filePath, "utf8");
+  try {
+    return fs.readFileSync(filePath, "utf8");
+  } catch (error) {
+    throw new Error(`Failed to read blog post "${slug}": ${String(error)}`);
+  }
+}
+
+function stripFrontmatter(markdown: string) {
+  return markdown.replace(/^---\s*\n[\s\S]*?\n---\s*\n?/, "");
 }
 
 function getPostTitle(markdown: string, fallback: string) {
@@ -64,122 +72,152 @@ function getPostExcerpt(markdown: string) {
   const plainText = markdown
     .replace(/^#\s+.+$/gm, "")
     .replace(/```[\s\S]*?```/g, "")
+    .replace(/!\[[^\]]*]\([^)]+\)/g, "")
+    .replace(/\[[^\]]+]\([^)]+\)/g, "")
     .split(/\r?\n/)
-    .map((line) => line.replace(/^>\s?/, "").trim())
+    .map((line) =>
+      line
+        .replace(/^>\s?/, "")
+        .replace(/^[-*]\s+/, "")
+        .replace(/^\d+\.\s+/, "")
+        .trim(),
+    )
     .find(Boolean);
 
   return plainText || "暂无摘要。";
 }
 
 function markdownToHtml(markdown: string) {
-  const lines = markdown.replace(/\r\n/g, "\n").split("\n");
   const html: string[] = [];
-  let index = 0;
+  const paragraph: string[] = [];
+  const list: string[] = [];
+  let codeLanguage = "";
+  let codeLines: string[] = [];
 
-  while (index < lines.length) {
-    const line = lines[index];
+  const flushParagraph = () => {
+    if (paragraph.length === 0) {
+      return;
+    }
 
-    if (!line.trim()) {
-      index += 1;
+    html.push(`<p>${formatInline(paragraph.join(" "))}</p>`);
+    paragraph.length = 0;
+  };
+
+  const flushList = () => {
+    if (list.length === 0) {
+      return;
+    }
+
+    html.push(`<ul>${list.map((item) => `<li>${formatInline(item)}</li>`).join("")}</ul>`);
+    list.length = 0;
+  };
+
+  const flushCode = () => {
+    html.push(
+      `<pre><code class="language-${escapeAttribute(codeLanguage)}">${escapeHtml(
+        codeLines.join("\n"),
+      )}</code></pre>`,
+    );
+    codeLanguage = "";
+    codeLines = [];
+  };
+
+  for (const rawLine of markdown.replace(/\r\n/g, "\n").split("\n")) {
+    const line = rawLine.trimEnd();
+
+    if (codeLanguage) {
+      if (line.startsWith("```")) {
+        flushCode();
+      } else {
+        codeLines.push(rawLine);
+      }
+
       continue;
     }
 
     if (line.startsWith("```")) {
-      const language = line.slice(3).trim();
-      const code: string[] = [];
-
-      index += 1;
-
-      while (index < lines.length && !lines[index].startsWith("```")) {
-        code.push(lines[index]);
-        index += 1;
-      }
-
-      html.push(
-        `<pre><code class="language-${escapeAttribute(language)}">${escapeHtml(
-          code.join("\n"),
-        )}</code></pre>`,
-      );
-      index += 1;
+      flushParagraph();
+      flushList();
+      codeLanguage = line.slice(3).trim() || "text";
+      codeLines = [];
       continue;
     }
 
-    const heading = line.match(/^(#{1,3})\s+(.+)$/);
+    if (!line.trim()) {
+      flushParagraph();
+      flushList();
+      continue;
+    }
+
+    const heading = line.match(/^(#{1,4})\s+(.+)$/);
 
     if (heading) {
+      flushParagraph();
+      flushList();
       const level = heading[1].length;
 
       html.push(`<h${level}>${formatInline(heading[2])}</h${level}>`);
-      index += 1;
       continue;
     }
 
-    if (/^>\s?/.test(line)) {
-      const quote: string[] = [];
+    const unorderedItem = line.match(/^[-*]\s+(.+)$/);
+    const orderedItem = line.match(/^\d+\.\s+(.+)$/);
 
-      while (index < lines.length && /^>\s?/.test(lines[index])) {
-        quote.push(lines[index].replace(/^>\s?/, ""));
-        index += 1;
-      }
-
-      html.push(`<blockquote>${formatInline(quote.join(" "))}</blockquote>`);
+    if (unorderedItem || orderedItem) {
+      flushParagraph();
+      list.push((unorderedItem || orderedItem)?.[1] || "");
       continue;
     }
 
-    if (/^[-*]\s+/.test(line)) {
-      const items: string[] = [];
+    const quote = line.match(/^>\s?(.+)$/);
 
-      while (index < lines.length && /^[-*]\s+/.test(lines[index])) {
-        items.push(
-          `<li>${formatInline(lines[index].replace(/^[-*]\s+/, ""))}</li>`,
-        );
-        index += 1;
-      }
-
-      html.push(`<ul>${items.join("")}</ul>`);
+    if (quote) {
+      flushParagraph();
+      flushList();
+      html.push(`<blockquote>${formatInline(quote[1])}</blockquote>`);
       continue;
     }
 
-    if (/^\d+\.\s+/.test(line)) {
-      const items: string[] = [];
+    const image = line.match(/^!\[([^\]]*)]\(([^)]+)\)$/);
 
-      while (index < lines.length && /^\d+\.\s+/.test(lines[index])) {
-        items.push(
-          `<li>${formatInline(lines[index].replace(/^\d+\.\s+/, ""))}</li>`,
-        );
-        index += 1;
-      }
-
-      html.push(`<ol>${items.join("")}</ol>`);
+    if (image) {
+      flushParagraph();
+      flushList();
+      html.push(
+        `<p><img alt="${escapeAttribute(image[1])}" src="${escapeAttribute(
+          image[2],
+        )}" /></p>`,
+      );
       continue;
     }
 
-    const paragraph: string[] = [];
-
-    while (
-      index < lines.length &&
-      lines[index].trim() &&
-      !lines[index].startsWith("```") &&
-      !/^(#{1,3})\s+/.test(lines[index]) &&
-      !/^>\s?/.test(lines[index]) &&
-      !/^[-*]\s+/.test(lines[index]) &&
-      !/^\d+\.\s+/.test(lines[index])
-    ) {
-      paragraph.push(lines[index].trim());
-      index += 1;
-    }
-
-    html.push(`<p>${formatInline(paragraph.join(" "))}</p>`);
+    paragraph.push(line.trim());
   }
+
+  if (codeLanguage) {
+    flushCode();
+  }
+
+  flushParagraph();
+  flushList();
 
   return html.join("\n");
 }
 
 function formatInline(text: string) {
-  return escapeHtml(text)
-    .replace(/`([^`]+)`/g, "<code>$1</code>")
+  const codeSpans: string[] = [];
+  const encoded = escapeHtml(text).replace(/`([^`]+)`/g, (_, code) => {
+    codeSpans.push(`<code>${code}</code>`);
+
+    return `@@CODE${codeSpans.length - 1}@@`;
+  });
+
+  return encoded
+    .replace(/!\[([^\]]*)]\(([^)]+)\)/g, '<img alt="$1" src="$2" />')
+    .replace(/\[([^\]]+)]\(([^)]+)\)/g, '<a href="$2">$1</a>')
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
-    .replace(/\*([^*]+)\*/g, "<em>$1</em>");
+    .replace(/\*([^*]+)\*/g, "<em>$1</em>")
+    .replace(/@@CODE(\d+)@@/g, (_, codeIndex) => codeSpans[Number(codeIndex)] || "");
 }
 
 function escapeHtml(value: string) {
@@ -192,5 +230,5 @@ function escapeHtml(value: string) {
 }
 
 function escapeAttribute(value: string) {
-  return escapeHtml(value).replace(/\s+/g, "-");
+  return escapeHtml(value).replace(/\s+/g, "%20");
 }

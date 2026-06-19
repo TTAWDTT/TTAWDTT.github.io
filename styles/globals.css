@@ -3,7 +3,19 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@font-face {
+    font-family: "LXGW WenKai Local";
+    src: url("/fonts/LXGWWenKai-Regular.ttf") format("truetype");
+    font-weight: 400 700;
+    font-style: normal;
+    font-display: swap;
+}
+
 @theme {
-    --font-sans: var(--font-sans), ui-serif, serif;
-    --font-mono: var(--font-mono), ui-monospace, monospace;
+    --font-sans: "LXGW WenKai Local", ui-serif, serif;
+    --font-mono: "LXGW WenKai Local", ui-monospace, monospace;
+}
+
+body {
+    font-family: "LXGW WenKai Local", ui-serif, serif;
 }
