@@ -19,3 +19,73 @@
 body {
     font-family: "LXGW WenKai Local", ui-serif, serif;
 }
+
+.blog-content {
+    color: var(--foreground);
+    font-size: 1.125rem;
+    line-height: 2.05;
+}
+
+.blog-content > * + * {
+    margin-top: 1.2rem;
+}
+
+.blog-content h2 {
+    margin-top: 2.75rem;
+    margin-bottom: 0.9rem;
+    font-size: 1.8rem;
+    line-height: 1.35;
+    font-weight: 600;
+}
+
+.blog-content h3 {
+    margin-top: 2rem;
+    margin-bottom: 0.75rem;
+    font-size: 1.35rem;
+    line-height: 1.4;
+    font-weight: 600;
+}
+
+.blog-content p {
+    text-align: justify;
+    text-wrap: pretty;
+}
+
+.blog-content blockquote {
+    border-left: 3px solid var(--accent);
+    color: var(--muted);
+    padding-left: 1rem;
+}
+
+.blog-content ul,
+.blog-content ol {
+    padding-left: 1.5rem;
+}
+
+.blog-content li + li {
+    margin-top: 0.4rem;
+}
+
+.blog-content code {
+    border-radius: 0.25rem;
+    background: var(--surface);
+    padding: 0.1rem 0.35rem;
+    font-size: 0.95em;
+}
+
+.blog-content pre {
+    overflow-x: auto;
+    border-radius: 0.5rem;
+    background: var(--surface);
+    padding: 1rem;
+}
+
+.blog-content pre code {
+    background: transparent;
+    padding: 0;
+}
+
+.blog-content img {
+    max-width: 100%;
+    border-radius: 0.5rem;
+}

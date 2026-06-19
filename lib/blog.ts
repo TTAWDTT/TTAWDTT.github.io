@@ -43,7 +43,7 @@ export function getBlogPost(slug: string): BlogPost {
     slug,
     title: getPostTitle(markdown, slug),
     excerpt: getPostExcerpt(markdown),
-    html: markdownToHtml(markdown),
+    html: markdownToHtml(stripTitleHeading(markdown)),
   };
 }
 
@@ -60,6 +60,10 @@ function readPost(slug: string) {
 
 function stripFrontmatter(markdown: string) {
   return markdown.replace(/^---\s*\n[\s\S]*?\n---\s*\n?/, "");
+}
+
+function stripTitleHeading(markdown: string) {
+  return markdown.replace(/^#\s+.+\n?/, "").trimStart();
 }
 
 function getPostTitle(markdown: string, fallback: string) {
@@ -108,7 +112,9 @@ function markdownToHtml(markdown: string) {
       return;
     }
 
-    html.push(`<ul>${list.map((item) => `<li>${formatInline(item)}</li>`).join("")}</ul>`);
+    html.push(
+      `<ul>${list.map((item) => `<li>${formatInline(item)}</li>`).join("")}</ul>`,
+    );
     list.length = 0;
   };
 
@@ -215,9 +221,13 @@ function formatInline(text: string) {
   return encoded
     .replace(/!\[([^\]]*)]\(([^)]+)\)/g, '<img alt="$1" src="$2" />')
     .replace(/\[([^\]]+)]\(([^)]+)\)/g, '<a href="$2">$1</a>')
+    .replace(/\*\*\*([^*]+)\*\*\*/g, "<strong><em>$1</em></strong>")
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
     .replace(/\*([^*]+)\*/g, "<em>$1</em>")
-    .replace(/@@CODE(\d+)@@/g, (_, codeIndex) => codeSpans[Number(codeIndex)] || "");
+    .replace(
+      /@@CODE(\d+)@@/g,
+      (_, codeIndex) => codeSpans[Number(codeIndex)] || "",
+    );
 }
 
 function escapeHtml(value: string) {

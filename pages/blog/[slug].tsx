@@ -45,7 +45,7 @@ export default function PostPage({ post, posts }: PostPageProps) {
           </nav>
         </aside>
 
-        <article>
+        <article className="mx-auto w-full max-w-4xl">
           <h1 className={title({ fullWidth: true })}>{post.title}</h1>
           <div
             dangerouslySetInnerHTML={{ __html: post.html }}
