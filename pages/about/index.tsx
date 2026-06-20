@@ -1,6 +1,7 @@
+import { Card } from "@heroui/react";
+
 import { title } from "@/components/primitives";
 import DefaultLayout from "@/layouts/default";
-import { Card } from "@heroui/react"
 
 export default function AboutPage() {
   return (
@@ -13,15 +14,16 @@ export default function AboutPage() {
           alt="TTAWDTT"
           className="h-40 w-40 rounded-full object-cover md:h-56 md:w-56"
           src="/logo.png"
-          />
-        <p className="text-lg leading-8 text-muted">
-          你好~
-        </p>
+        />
+        <p className="text-lg leading-8 text-muted">你好~</p>
         <p className="text-lg leading-8 text-muted">
           我是TTAWDTT，你也可以直呼我的大名Zhen Luo
         </p>
         <p>我是一名本科生，同时是一名researcher。我的研究领域包括：</p>
-        <Card className="w-[320px] justify-center items-center" variant="default">
+        <Card
+          className="w-[320px] justify-center items-center"
+          variant="default"
+        >
           <Card.Content>
             <ul>
               <li>表征学习</li>

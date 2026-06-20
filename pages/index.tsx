@@ -35,7 +35,6 @@ export default function IndexPage() {
             GitHub
           </a>
         </div>
-
       </section>
     </DefaultLayout>
   );
