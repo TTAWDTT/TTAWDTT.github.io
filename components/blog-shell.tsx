@@ -98,9 +98,7 @@ export function BlogShell({
         </nav>
       </aside>
 
-      <div key={activeSlug || "index"} className="blog-main">
-        {children}
-      </div>
+      <div className="blog-main">{children}</div>
     </section>
   );
 }

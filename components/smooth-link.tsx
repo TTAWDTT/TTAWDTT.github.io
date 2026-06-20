@@ -3,10 +3,6 @@ import type { AnchorHTMLAttributes, MouseEvent, ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 
-type ViewTransitionDocument = Document & {
-  startViewTransition?: (callback: () => void | Promise<void>) => void;
-};
-
 type SmoothLinkProps = AnchorHTMLAttributes<HTMLAnchorElement> & {
   href: string;
   children: ReactNode;
@@ -33,24 +29,13 @@ export function SmoothLink({
       event.altKey ||
       event.button !== 0 ||
       href.startsWith("http") ||
-      href.startsWith("#")
+      href.startsWith("#") ||
+      router.asPath === href
     ) {
       return;
     }
 
     event.preventDefault();
-
-    const viewTransition = (document as ViewTransitionDocument)
-      .startViewTransition;
-
-    if (viewTransition) {
-      viewTransition(async () => {
-        await router.push(href);
-      });
-
-      return;
-    }
-
     router.push(href);
   };
 
