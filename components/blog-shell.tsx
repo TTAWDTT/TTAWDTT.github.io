@@ -2,9 +2,9 @@ import type { BlogPostMeta } from "@/lib/blog";
 
 import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@heroui/react";
-import Link from "next/link";
 
 import { PanelToggleIcon } from "@/components/icons";
+import { SmoothLink } from "@/components/smooth-link";
 
 type BlogShellProps = {
   posts: BlogPostMeta[];
@@ -72,7 +72,7 @@ export function BlogShell({
         </div>
 
         <nav aria-label="Blog posts" className="blog-sidebar__nav">
-          <Link
+          <SmoothLink
             className={
               !activeSlug
                 ? "blog-nav-item blog-nav-item--active"
@@ -81,9 +81,9 @@ export function BlogShell({
             href="/blog"
           >
             <span>All Posts</span>
-          </Link>
+          </SmoothLink>
           {posts.map((post) => (
-            <Link
+            <SmoothLink
               key={post.slug}
               className={
                 post.slug === activeSlug
@@ -93,7 +93,7 @@ export function BlogShell({
               href={`/blog/${post.slug}`}
             >
               <span>{post.title}</span>
-            </Link>
+            </SmoothLink>
           ))}
         </nav>
       </aside>

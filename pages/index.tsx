@@ -1,6 +1,7 @@
-import { siteConfig } from "@/config/site";
-import { subtitle } from "@/components/primitives";
 import { GithubIcon } from "@/components/icons";
+import { subtitle } from "@/components/primitives";
+import { SmoothLink } from "@/components/smooth-link";
+import { siteConfig } from "@/config/site";
 import DefaultLayout from "@/layouts/default";
 
 export default function IndexPage() {
@@ -19,12 +20,12 @@ export default function IndexPage() {
         </div>
 
         <div className="flex gap-3">
-          <a
+          <SmoothLink
             className="button button--primary button--md rounded-full"
             href="/blog"
           >
             Read Blog
-          </a>
+          </SmoothLink>
           <a
             className="button button--tertiary button--md rounded-full"
             href={siteConfig.links.github}

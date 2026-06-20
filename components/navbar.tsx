@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { Link } from "@heroui/react";
-import NextLink from "next/link";
 import clsx from "clsx";
 
-import { siteConfig } from "@/config/site";
-import { ThemeSwitch } from "@/components/theme-switch";
 import { GithubIcon } from "@/components/icons";
+import { SmoothLink } from "@/components/smooth-link";
+import { ThemeSwitch } from "@/components/theme-switch";
+import { siteConfig } from "@/config/site";
 
 export const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -14,13 +14,13 @@ export const Navbar = () => {
     <nav className="sticky top-0 z-40 w-full border-b border-separator bg-background/70 backdrop-blur-lg">
       <header className="mx-auto flex h-16 max-w-[1280px] items-center justify-between gap-4 px-6">
         <div className="flex items-center gap-4">
-          <NextLink className="flex items-center gap-1" href="/">
+          <SmoothLink className="flex items-center gap-1" href="/">
             <p className="font-bold text-inherit">{siteConfig.name}</p>
-          </NextLink>
+          </SmoothLink>
           <ul className="hidden lg:flex gap-4 ml-2">
             {siteConfig.navItems.map((item) => (
               <li key={item.href}>
-                <NextLink
+                <SmoothLink
                   className={clsx(
                     "text-foreground hover:text-accent transition-colors",
                     "data-[active=true]:text-accent data-[active=true]:font-medium",
@@ -28,21 +28,21 @@ export const Navbar = () => {
                   href={item.href}
                 >
                   {item.label}
-                </NextLink>
+                </SmoothLink>
               </li>
             ))}
           </ul>
         </div>
 
         <div className="hidden sm:flex items-center gap-2">
-          <NextLink aria-label="Home" href="/">
+          <SmoothLink aria-label="Home" href="/">
             <img
               alt=""
               aria-hidden="true"
               className="h-9 w-9 rounded-full object-cover"
               src="/logo.png"
             />
-          </NextLink>
+          </SmoothLink>
           <Link
             aria-label="Github"
             href={siteConfig.links.github}
@@ -55,14 +55,14 @@ export const Navbar = () => {
         </div>
 
         <div className="flex sm:hidden items-center gap-2">
-          <NextLink aria-label="Home" href="/">
+          <SmoothLink aria-label="Home" href="/">
             <img
               alt=""
               aria-hidden="true"
               className="h-9 w-9 rounded-full object-cover"
               src="/logo.png"
             />
-          </NextLink>
+          </SmoothLink>
           <Link
             aria-label="Github"
             href={siteConfig.links.github}
@@ -109,12 +109,13 @@ export const Navbar = () => {
           <ul className="flex flex-col gap-2 px-4 pb-4">
             {siteConfig.navMenuItems.map((item) => (
               <li key={item.href}>
-                <Link
+                <SmoothLink
                   className="block py-2 text-lg text-foreground no-underline"
                   href={item.href}
+                  onClick={() => setIsMenuOpen(false)}
                 >
                   {item.label}
-                </Link>
+                </SmoothLink>
               </li>
             ))}
           </ul>

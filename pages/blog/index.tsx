@@ -1,8 +1,7 @@
 import type { GetStaticProps } from "next";
 
-import Link from "next/link";
-
 import { BlogShell } from "@/components/blog-shell";
+import { SmoothLink } from "@/components/smooth-link";
 import { getBlogPosts, type BlogPostMeta } from "@/lib/blog";
 import DefaultLayout from "@/layouts/default";
 
@@ -25,14 +24,14 @@ export default function BlogPage({ posts }: BlogPageProps) {
         <div className="blog-list">
           {posts.length > 0 ? (
             posts.map((post) => (
-              <Link
+              <SmoothLink
                 key={post.slug}
                 className="blog-card"
                 href={`/blog/${post.slug}`}
               >
                 <h2>{post.title}</h2>
                 <p>{post.excerpt}</p>
-              </Link>
+              </SmoothLink>
             ))
           ) : (
             <div className="blog-empty">

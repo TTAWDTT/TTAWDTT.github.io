@@ -201,13 +201,13 @@ export const PanelToggleIcon = ({
     {...props}
   >
     <path
-      d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v13a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 18.5v-13Z"
+      d="M8 5v14"
       stroke="currentColor"
+      strokeLinecap="round"
       strokeWidth="1.8"
     />
-    <path d="M9 3v18" stroke="currentColor" strokeWidth="1.8" />
     <path
-      d="m15 9-3 3 3 3"
+      d="m15 8-4 4 4 4"
       stroke="currentColor"
       strokeLinecap="round"
       strokeLinejoin="round"
