@@ -36,7 +36,6 @@ export default function BlogPage({ posts }: BlogPageProps) {
                     <span className="blog-index__title">{post.title}</span>
                     <span className="blog-index__excerpt">{post.excerpt}</span>
                   </span>
-                  <span className="blog-index__slug">{post.slug}</span>
                 </SmoothLink>
               ))}
             </div>
