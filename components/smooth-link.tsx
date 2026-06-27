@@ -8,12 +8,6 @@ type SmoothLinkProps = AnchorHTMLAttributes<HTMLAnchorElement> & {
   children: ReactNode;
 };
 
-type ViewTransitionDocument = Document & {
-  startViewTransition?: (callback: () => Promise<void> | void) => {
-    finished: Promise<void>;
-  };
-};
-
 const isModifiedEvent = (event: MouseEvent<HTMLAnchorElement>) =>
   event.metaKey ||
   event.ctrlKey ||
@@ -48,37 +42,12 @@ export function SmoothLink({
     }
 
     event.preventDefault();
-
-    const transitionDocument = document as ViewTransitionDocument;
     const shouldUseBlogTransition =
       isBlogRoute(href) && isBlogRoute(router.asPath);
 
-    if (shouldUseBlogTransition && transitionDocument.startViewTransition) {
-      document.documentElement.dataset.routeTransition = "blog";
-
-      const transition = transitionDocument.startViewTransition(async () => {
-        await router.push(href, undefined, { scroll: false });
-      });
-
-      transition.finished.finally(() => {
-        delete document.documentElement.dataset.routeTransition;
-        window.scrollTo(0, 0);
-      });
-
-      return;
-    }
-
     if (shouldUseBlogTransition) {
-      document.documentElement.dataset.routeTransition = "blog-fallback";
-
-      window.setTimeout(() => {
-        router.push(href, undefined, { scroll: false }).finally(() => {
-          window.scrollTo(0, 0);
-          window.setTimeout(() => {
-            delete document.documentElement.dataset.routeTransition;
-          }, 220);
-        });
-      }, 90);
+      document.documentElement.dataset.blogTransition = "leaving";
+      router.push(href, undefined, { scroll: false });
 
       return;
     }
