@@ -13,25 +13,40 @@ export default function BlogPage({ posts }: BlogPageProps) {
   return (
     <DefaultLayout>
       <BlogShell posts={posts}>
-        <div className="blog-list">
-          {posts.length > 0 ? (
-            posts.map((post) => (
-              <SmoothLink
-                key={post.slug}
-                className="blog-card"
-                href={`/blog/${post.slug}`}
-              >
-                <h2>{post.title}</h2>
-                <p>{post.excerpt}</p>
-              </SmoothLink>
-            ))
+        <section className="blog-index">
+          <header className="blog-index__header">
+            <div>
+              <h1>All Posts</h1>
+              <p>{posts.length} notes</p>
+            </div>
+          </header>
+
+          {posts.length ? (
+            <div className="blog-index__list">
+              {posts.map((post, index) => (
+                <SmoothLink
+                  key={post.slug}
+                  className="blog-index__item"
+                  href={`/blog/${post.slug}`}
+                >
+                  <span className="blog-index__number">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <span className="blog-index__body">
+                    <span className="blog-index__title">{post.title}</span>
+                    <span className="blog-index__excerpt">{post.excerpt}</span>
+                  </span>
+                  <span className="blog-index__slug">{post.slug}</span>
+                </SmoothLink>
+              ))}
+            </div>
           ) : (
             <div className="blog-empty">
               还没有文章。把 Markdown 文件放进{" "}
               <code className="font-mono">content/blog</code> 后重新构建即可。
             </div>
           )}
-        </div>
+        </section>
       </BlogShell>
     </DefaultLayout>
   );
