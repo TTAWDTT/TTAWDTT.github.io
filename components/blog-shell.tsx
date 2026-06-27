@@ -113,9 +113,7 @@ export function BlogShell({ posts, activeSlug, children }: BlogShellProps) {
         </nav>
       </aside>
 
-      <div key={activeSlug ?? "index"} className="blog-main">
-        {children}
-      </div>
+      <div className="blog-main">{children}</div>
     </section>
   );
 }
