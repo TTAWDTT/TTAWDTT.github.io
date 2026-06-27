@@ -1,7 +1,13 @@
 import type { BlogPostMeta } from "@/lib/blog";
 
-import { useEffect, useState, type ReactNode } from "react";
+import {
+  useLayoutEffect,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { Button } from "@heroui/react";
+import clsx from "clsx";
 
 import { PanelToggleIcon } from "@/components/icons";
 import { SmoothLink } from "@/components/smooth-link";
@@ -14,6 +20,7 @@ type BlogShellProps = {
 };
 
 const storageKey = "ttawdtt-blog-sidebar-collapsed";
+let cachedSidebarCollapsed: boolean | null = null;
 
 export function BlogShell({
   posts,
@@ -21,16 +28,30 @@ export function BlogShell({
   description,
   children,
 }: BlogShellProps) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(
+    () => cachedSidebarCollapsed ?? false,
+  );
+  const layoutStyle = {
+    "--blog-sidebar-width": isCollapsed ? "3rem" : "16rem",
+  } as CSSProperties;
 
-  useEffect(() => {
-    setIsCollapsed(localStorage.getItem(storageKey) === "true");
+  useLayoutEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (cachedSidebarCollapsed === null) {
+      cachedSidebarCollapsed = localStorage.getItem(storageKey) === "true";
+    }
+
+    setIsCollapsed(cachedSidebarCollapsed);
   }, []);
 
   const toggleSidebar = () => {
     setIsCollapsed((current) => {
       const next = !current;
 
+      cachedSidebarCollapsed = next;
       localStorage.setItem(storageKey, String(next));
 
       return next;
@@ -39,9 +60,8 @@ export function BlogShell({
 
   return (
     <section
-      className={
-        isCollapsed ? "blog-shell blog-shell--collapsed" : "blog-shell"
-      }
+      className={clsx("blog-shell", isCollapsed && "blog-shell--collapsed")}
+      style={layoutStyle}
     >
       <aside aria-label="Blog navigation" className="blog-sidebar">
         <div className="blog-sidebar__top">
@@ -52,12 +72,14 @@ export function BlogShell({
             ) : null}
           </div>
           <Button
+            isIconOnly
             aria-label={
               isCollapsed
                 ? "Expand blog navigation"
                 : "Collapse blog navigation"
             }
             className="blog-sidebar__toggle"
+            size="sm"
             variant="tertiary"
             onPress={toggleSidebar}
           >
@@ -73,6 +95,7 @@ export function BlogShell({
 
         <nav aria-label="Blog posts" className="blog-sidebar__nav">
           <SmoothLink
+            aria-current={!activeSlug ? "page" : undefined}
             className={
               !activeSlug
                 ? "blog-nav-item blog-nav-item--active"
@@ -85,6 +108,7 @@ export function BlogShell({
           {posts.map((post) => (
             <SmoothLink
               key={post.slug}
+              aria-current={post.slug === activeSlug ? "page" : undefined}
               className={
                 post.slug === activeSlug
                   ? "blog-nav-item blog-nav-item--active"

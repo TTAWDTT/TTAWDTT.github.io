@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "@heroui/react";
 import clsx from "clsx";
+import { useRouter } from "next/router";
 
 import { GithubIcon } from "@/components/icons";
 import { SmoothLink } from "@/components/smooth-link";
@@ -9,21 +10,25 @@ import { siteConfig } from "@/config/site";
 
 export const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const router = useRouter();
+
+  const isActivePath = (href: string) =>
+    href === "/" ? router.pathname === "/" : router.pathname.startsWith(href);
 
   return (
-    <nav className="sticky top-0 z-40 w-full border-b border-separator bg-background/70 backdrop-blur-lg">
-      <header className="mx-auto flex h-16 max-w-[1280px] items-center justify-between gap-4 px-6">
+    <nav className="sticky top-0 z-40 w-full border-b border-separator bg-background/85 shadow-[0_1px_0_color-mix(in_oklch,var(--foreground)_5%,transparent)] backdrop-blur-lg">
+      <header className="mx-auto flex h-16 max-w-[1280px] items-center justify-between gap-4 px-4 sm:px-6">
         <div className="flex items-center gap-4">
-          <SmoothLink className="flex items-center gap-1" href="/">
+          <SmoothLink className="brand-link flex items-center gap-1" href="/">
             <p className="font-bold text-inherit">{siteConfig.name}</p>
           </SmoothLink>
-          <ul className="hidden lg:flex gap-4 ml-2">
+          <ul className="hidden lg:flex gap-2 ml-1">
             {siteConfig.navItems.map((item) => (
               <li key={item.href}>
                 <SmoothLink
                   className={clsx(
-                    "text-foreground hover:text-accent transition-colors",
-                    "data-[active=true]:text-accent data-[active=true]:font-medium",
+                    "nav-link text-foreground",
+                    isActivePath(item.href) && "nav-link--active text-accent",
                   )}
                   href={item.href}
                 >
@@ -34,8 +39,8 @@ export const Navbar = () => {
           </ul>
         </div>
 
-        <div className="hidden sm:flex items-center gap-2">
-          <SmoothLink aria-label="Home" href="/">
+        <div className="hidden sm:flex items-center gap-1">
+          <SmoothLink aria-label="Home" className="avatar-link" href="/">
             <img
               alt=""
               aria-hidden="true"
@@ -45,17 +50,18 @@ export const Navbar = () => {
           </SmoothLink>
           <Link
             aria-label="Github"
+            className="icon-link"
             href={siteConfig.links.github}
             rel="noopener noreferrer"
             target="_blank"
           >
             <GithubIcon className="text-muted" />
           </Link>
-          <ThemeSwitch />
+          <ThemeSwitch className="icon-link" />
         </div>
 
-        <div className="flex sm:hidden items-center gap-2">
-          <SmoothLink aria-label="Home" href="/">
+        <div className="flex sm:hidden items-center gap-1">
+          <SmoothLink aria-label="Home" className="avatar-link" href="/">
             <img
               alt=""
               aria-hidden="true"
@@ -65,17 +71,18 @@ export const Navbar = () => {
           </SmoothLink>
           <Link
             aria-label="Github"
+            className="icon-link"
             href={siteConfig.links.github}
             rel="noopener noreferrer"
             target="_blank"
           >
             <GithubIcon className="text-muted" />
           </Link>
-          <ThemeSwitch />
+          <ThemeSwitch className="icon-link" />
           <button
             aria-expanded={isMenuOpen}
             aria-label="Toggle menu"
-            className="p-2"
+            className="icon-link"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
             <svg
@@ -106,11 +113,14 @@ export const Navbar = () => {
 
       {isMenuOpen && (
         <div className="border-t border-separator sm:hidden">
-          <ul className="flex flex-col gap-2 px-4 pb-4">
+          <ul className="flex flex-col gap-2 px-4 py-4">
             {siteConfig.navMenuItems.map((item) => (
               <li key={item.href}>
                 <SmoothLink
-                  className="block py-2 text-lg text-foreground no-underline"
+                  className={clsx(
+                    "nav-link block py-2 text-lg text-foreground",
+                    isActivePath(item.href) && "nav-link--active text-accent",
+                  )}
                   href={item.href}
                   onClick={() => setIsMenuOpen(false)}
                 >

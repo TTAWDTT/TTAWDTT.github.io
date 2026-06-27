@@ -91,10 +91,91 @@ function getPostExcerpt(markdown: string) {
   return plainText || "暂无摘要。";
 }
 
+function unescapeMarkdownPunctuation(value: string) {
+  return value.replace(/\\([\\`*{}\[\]()#+\-.!_~<>])/g, "$1");
+}
+
+function isSafeImageSrc(src: string) {
+  return (
+    /^(https?:\/\/|\/(?!\/)|\.{0,2}\/)/i.test(src) &&
+    !/[\u0000-\u001f]/.test(src)
+  );
+}
+
+function readHtmlAttributes(source: string): Record<string, string> {
+  const attributes: Record<string, string> = {};
+  const attributePattern =
+    /\s([a-zA-Z][\w:-]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = attributePattern.exec(source))) {
+    attributes[match[1].toLowerCase()] = match[2] ?? match[3] ?? match[4] ?? "";
+  }
+
+  return attributes;
+}
+
+function renderImage({
+  alt = "",
+  height,
+  src,
+  width,
+}: {
+  alt?: string;
+  height?: string;
+  src: string;
+  width?: string;
+}) {
+  const trimmedSrc = src.trim();
+
+  if (!isSafeImageSrc(trimmedSrc)) {
+    return escapeHtml(src);
+  }
+
+  const sizeAttributes = [
+    width && /^\d{1,5}$/.test(width) ? ` width="${width}"` : "",
+    height && /^\d{1,5}$/.test(height) ? ` height="${height}"` : "",
+  ].join("");
+
+  return `<img src="${escapeHtml(trimmedSrc)}" alt="${escapeHtml(
+    alt,
+  )}"${sizeAttributes} loading="lazy" />`;
+}
+
+function renderHtmlImage(source: string) {
+  if (!/^<img\b[^>]*\/?>$/i.test(source.trim())) {
+    return null;
+  }
+
+  const attributes = readHtmlAttributes(source);
+
+  if (!attributes.src) {
+    return escapeHtml(source);
+  }
+
+  return renderImage({
+    alt: attributes.alt,
+    height: attributes.height,
+    src: attributes.src,
+    width: attributes.width,
+  });
+}
+
+function renderMarkdownImage(source: string) {
+  const match = source.match(/^!\[([^\]]*)]\(([^)\s]+)(?:\s+"[^"]*")?\)$/);
+
+  if (!match) {
+    return null;
+  }
+
+  return renderImage({ alt: match[1], src: match[2] });
+}
+
 function markdownToHtml(markdown: string) {
   const html: string[] = [];
   const paragraph: string[] = [];
   const list: string[] = [];
+  let listTag: "ol" | "ul" = "ul";
   let codeLanguage = "";
   let codeLines: string[] = [];
 
@@ -113,9 +194,12 @@ function markdownToHtml(markdown: string) {
     }
 
     html.push(
-      `<ul>${list.map((item) => `<li>${formatInline(item)}</li>`).join("")}</ul>`,
+      `<${listTag}>${list
+        .map((item) => `<li>${formatInline(item)}</li>`)
+        .join("")}</${listTag}>`,
     );
     list.length = 0;
+    listTag = "ul";
   };
 
   const flushCode = () => {
@@ -155,6 +239,16 @@ function markdownToHtml(markdown: string) {
       continue;
     }
 
+    const blockImage =
+      renderHtmlImage(line.trim()) ?? renderMarkdownImage(line.trim());
+
+    if (blockImage) {
+      flushParagraph();
+      flushList();
+      html.push(blockImage);
+      continue;
+    }
+
     const heading = line.match(/^(#{1,4})\s+(.+)$/);
 
     if (heading) {
@@ -166,11 +260,27 @@ function markdownToHtml(markdown: string) {
       continue;
     }
 
+    const horizontalRule = line.trim().match(/^(\*\s*){3,}$|^(-\s*){3,}$/);
+
+    if (horizontalRule) {
+      flushParagraph();
+      flushList();
+      html.push("<hr />");
+      continue;
+    }
+
     const unorderedItem = line.match(/^[-*]\s+(.+)$/);
     const orderedItem = line.match(/^\d+\.\s+(.+)$/);
 
     if (unorderedItem || orderedItem) {
       flushParagraph();
+      const nextTag = orderedItem ? "ol" : "ul";
+
+      if (list.length > 0 && listTag !== nextTag) {
+        flushList();
+      }
+
+      listTag = nextTag;
       list.push((unorderedItem || orderedItem)?.[1] || "");
       continue;
     }
@@ -181,19 +291,6 @@ function markdownToHtml(markdown: string) {
       flushParagraph();
       flushList();
       html.push(`<blockquote>${formatInline(quote[1])}</blockquote>`);
-      continue;
-    }
-
-    const image = line.match(/^!\[([^\]]*)]\(([^)]+)\)$/);
-
-    if (image) {
-      flushParagraph();
-      flushList();
-      html.push(
-        `<p><img alt="${escapeAttribute(image[1])}" src="${escapeAttribute(
-          image[2],
-        )}" /></p>`,
-      );
       continue;
     }
 
@@ -212,15 +309,22 @@ function markdownToHtml(markdown: string) {
 
 function formatInline(text: string) {
   const codeSpans: string[] = [];
-  const encoded = escapeHtml(text).replace(/`([^`]+)`/g, (_, code) => {
-    codeSpans.push(`<code>${code}</code>`);
+  const encoded = escapeHtml(unescapeMarkdownPunctuation(text)).replace(
+    /`([^`]+)`/g,
+    (_, code) => {
+      codeSpans.push(`<code>${code}</code>`);
 
-    return `@@CODE${codeSpans.length - 1}@@`;
-  });
+      return `@@CODE${codeSpans.length - 1}@@`;
+    },
+  );
 
   return encoded
-    .replace(/!\[([^\]]*)]\(([^)]+)\)/g, '<img alt="$1" src="$2" />')
+    .replace(
+      /!\[([^\]]*)]\(([^)\s]+)(?:\s+&quot;[^&]*&quot;)?\)/g,
+      (_, alt, src) => renderImage({ alt, src }),
+    )
     .replace(/\[([^\]]+)]\(([^)]+)\)/g, '<a href="$2">$1</a>')
+    .replace(/&lt;u&gt;(.+?)&lt;\/u&gt;/g, "<u>$1</u>")
     .replace(/\*\*\*([^*]+)\*\*\*/g, "<strong><em>$1</em></strong>")
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
     .replace(/\*([^*]+)\*/g, "<em>$1</em>")
