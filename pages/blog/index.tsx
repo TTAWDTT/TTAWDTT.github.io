@@ -12,15 +12,7 @@ type BlogPageProps = {
 export default function BlogPage({ posts }: BlogPageProps) {
   return (
     <DefaultLayout>
-      <BlogShell
-        description={
-          <>
-            目录来自 <code className="font-mono">content/blog</code> 中的
-            Markdown 文件。
-          </>
-        }
-        posts={posts}
-      >
+      <BlogShell posts={posts}>
         <div className="blog-list">
           {posts.length > 0 ? (
             posts.map((post) => (

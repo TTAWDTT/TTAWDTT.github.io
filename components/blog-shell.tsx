@@ -15,24 +15,18 @@ import { SmoothLink } from "@/components/smooth-link";
 type BlogShellProps = {
   posts: BlogPostMeta[];
   activeSlug?: string;
-  description?: ReactNode;
   children: ReactNode;
 };
 
 const storageKey = "ttawdtt-blog-sidebar-collapsed";
 let cachedSidebarCollapsed: boolean | null = null;
 
-export function BlogShell({
-  posts,
-  activeSlug,
-  description,
-  children,
-}: BlogShellProps) {
+export function BlogShell({ posts, activeSlug, children }: BlogShellProps) {
   const [isCollapsed, setIsCollapsed] = useState(
     () => cachedSidebarCollapsed ?? false,
   );
   const layoutStyle = {
-    "--blog-sidebar-width": isCollapsed ? "3rem" : "16rem",
+    "--blog-sidebar-width": isCollapsed ? "4.5rem" : "15rem",
   } as CSSProperties;
 
   useLayoutEffect(() => {
@@ -65,12 +59,7 @@ export function BlogShell({
     >
       <aside aria-label="Blog navigation" className="blog-sidebar">
         <div className="blog-sidebar__top">
-          <div className="blog-sidebar__copy">
-            <h1 className="blog-sidebar__title">Blog</h1>
-            {description ? (
-              <p className="blog-sidebar__description">{description}</p>
-            ) : null}
-          </div>
+          <span className="blog-sidebar__title">Blog</span>
           <Button
             isIconOnly
             aria-label={
@@ -96,33 +85,37 @@ export function BlogShell({
         <nav aria-label="Blog posts" className="blog-sidebar__nav">
           <SmoothLink
             aria-current={!activeSlug ? "page" : undefined}
-            className={
-              !activeSlug
-                ? "blog-nav-item blog-nav-item--active"
-                : "blog-nav-item"
-            }
+            className={clsx(
+              "blog-nav-item group",
+              !activeSlug && "blog-nav-item--active",
+            )}
             href="/blog"
+            title="All Posts"
           >
-            <span>All Posts</span>
+            <span className="blog-nav-item__dot" />
+            <span className="blog-nav-item__label">All Posts</span>
           </SmoothLink>
           {posts.map((post) => (
             <SmoothLink
               key={post.slug}
               aria-current={post.slug === activeSlug ? "page" : undefined}
-              className={
-                post.slug === activeSlug
-                  ? "blog-nav-item blog-nav-item--active"
-                  : "blog-nav-item"
-              }
+              className={clsx(
+                "blog-nav-item group",
+                post.slug === activeSlug && "blog-nav-item--active",
+              )}
               href={`/blog/${post.slug}`}
+              title={post.title}
             >
-              <span>{post.title}</span>
+              <span className="blog-nav-item__dot" />
+              <span className="blog-nav-item__label">{post.title}</span>
             </SmoothLink>
           ))}
         </nav>
       </aside>
 
-      <div className="blog-main">{children}</div>
+      <div key={activeSlug ?? "index"} className="blog-main">
+        {children}
+      </div>
     </section>
   );
 }

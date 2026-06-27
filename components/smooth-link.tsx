@@ -8,6 +8,17 @@ type SmoothLinkProps = AnchorHTMLAttributes<HTMLAnchorElement> & {
   children: ReactNode;
 };
 
+type ViewTransitionDocument = Document & {
+  startViewTransition?: (callback: () => Promise<void> | void) => void;
+};
+
+const isModifiedEvent = (event: MouseEvent<HTMLAnchorElement>) =>
+  event.metaKey ||
+  event.ctrlKey ||
+  event.shiftKey ||
+  event.altKey ||
+  event.button !== 0;
+
 export function SmoothLink({
   href,
   children,
@@ -23,11 +34,7 @@ export function SmoothLink({
     if (
       event.defaultPrevented ||
       target === "_blank" ||
-      event.metaKey ||
-      event.ctrlKey ||
-      event.shiftKey ||
-      event.altKey ||
-      event.button !== 0 ||
+      isModifiedEvent(event) ||
       href.startsWith("http") ||
       href.startsWith("#") ||
       router.asPath === href
@@ -36,6 +43,17 @@ export function SmoothLink({
     }
 
     event.preventDefault();
+
+    const transitionDocument = document as ViewTransitionDocument;
+
+    if (transitionDocument.startViewTransition) {
+      transitionDocument.startViewTransition(async () => {
+        await router.push(href);
+      });
+
+      return;
+    }
+
     router.push(href);
   };
 
