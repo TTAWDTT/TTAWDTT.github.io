@@ -8,7 +8,10 @@ export type BlogPost = {
   html: string;
 };
 
-export type BlogPostMeta = Pick<BlogPost, "slug" | "title" | "excerpt">;
+export type BlogPostMeta = Pick<BlogPost, "slug" | "title" | "excerpt"> & {
+  dateLabel: string;
+  year: string;
+};
 
 const blogDirectory = path.join(process.cwd(), "content", "blog");
 
@@ -25,15 +28,28 @@ export function getBlogSlugs() {
 }
 
 export function getBlogPosts(): BlogPostMeta[] {
-  return getBlogSlugs().map((slug) => {
-    const markdown = stripFrontmatter(readPost(slug));
+  return getBlogSlugs()
+    .map((slug) => {
+      const markdown = stripFrontmatter(readPost(slug));
+      const postDate = getPostDate(slug);
 
-    return {
-      slug,
-      title: getPostTitle(markdown, slug),
-      excerpt: getPostExcerpt(markdown),
-    };
-  });
+      return {
+        slug,
+        title: getPostTitle(markdown, slug),
+        excerpt: getPostExcerpt(markdown),
+        dateLabel: postDate.label,
+        year: postDate.year,
+      };
+    })
+    .sort((a, b) => {
+      const byYear = Number(b.year) - Number(a.year);
+
+      if (byYear !== 0) {
+        return byYear;
+      }
+
+      return b.dateLabel.localeCompare(a.dateLabel, "zh-CN");
+    });
 }
 
 export function getBlogPost(slug: string): BlogPost {
@@ -89,6 +105,27 @@ function getPostExcerpt(markdown: string) {
     .find(Boolean);
 
   return plainText || "暂无摘要。";
+}
+
+function getPostDate(slug: string) {
+  const slugDate = slug.match(/^(\d{1,2})-(\d{1,2})$/);
+
+  if (slugDate) {
+    return {
+      label: `${slugDate[1].padStart(2, "0")}-${slugDate[2].padStart(2, "0")}`,
+      year: "2026",
+    };
+  }
+
+  const filePath = path.join(blogDirectory, `${slug}.md`);
+  const modifiedAt = fs.statSync(filePath).mtime;
+
+  return {
+    label: `${String(modifiedAt.getMonth() + 1).padStart(2, "0")}-${String(
+      modifiedAt.getDate(),
+    ).padStart(2, "0")}`,
+    year: String(modifiedAt.getFullYear()),
+  };
 }
 
 function unescapeMarkdownPunctuation(value: string) {

@@ -9,34 +9,50 @@ type BlogPageProps = {
   posts: BlogPostMeta[];
 };
 
+const groupPostsByYear = (posts: BlogPostMeta[]) =>
+  posts.reduce<Record<string, BlogPostMeta[]>>((groups, post) => {
+    groups[post.year] = [...(groups[post.year] || []), post];
+
+    return groups;
+  }, {});
+
 export default function BlogPage({ posts }: BlogPageProps) {
+  const postsByYear = groupPostsByYear(posts);
+  const years = Object.keys(postsByYear).sort((a, b) => Number(b) - Number(a));
+
   return (
     <DefaultLayout>
       <BlogShell posts={posts}>
         <section className="blog-index">
           <header className="blog-index__header">
             <div>
-              <h1>All Posts</h1>
-              <p>{posts.length} notes</p>
+              <h1>Archives</h1>
+              <p>目前共计 {posts.length} 篇日志。</p>
             </div>
           </header>
 
           {posts.length ? (
             <div className="blog-index__list">
-              {posts.map((post, index) => (
-                <SmoothLink
-                  key={post.slug}
-                  className="blog-index__item"
-                  href={`/blog/${post.slug}`}
-                >
-                  <span className="blog-index__number">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                  <span className="blog-index__body">
-                    <span className="blog-index__title">{post.title}</span>
-                    <span className="blog-index__excerpt">{post.excerpt}</span>
-                  </span>
-                </SmoothLink>
+              {years.map((year) => (
+                <section key={year} className="blog-archive">
+                  <h2 className="blog-archive__year">{year}</h2>
+                  <div className="blog-archive__items">
+                    {postsByYear[year].map((post) => (
+                      <SmoothLink
+                        key={post.slug}
+                        className="blog-archive__item"
+                        href={`/blog/${post.slug}`}
+                      >
+                        <time className="blog-archive__date">
+                          {post.dateLabel}
+                        </time>
+                        <span className="blog-archive__title">
+                          {post.title}
+                        </span>
+                      </SmoothLink>
+                    ))}
+                  </div>
+                </section>
               ))}
             </div>
           ) : (
