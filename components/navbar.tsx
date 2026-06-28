@@ -16,7 +16,7 @@ export const Navbar = () => {
     href === "/" ? router.pathname === "/" : router.pathname.startsWith(href);
 
   return (
-    <nav className="sticky top-0 z-40 w-full bg-background">
+    <nav className="site-navbar sticky top-0 z-40 w-full">
       <header className="mx-auto flex h-16 max-w-[1280px] items-center justify-between gap-4 px-4 sm:px-6">
         <div className="flex items-center gap-4">
           <SmoothLink className="brand-link flex items-center gap-1" href="/">

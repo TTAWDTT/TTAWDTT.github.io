@@ -33,6 +33,20 @@ Add or edit `.md` files there. The Blog page reads that folder at build time, li
 
 Each post title comes from the first `# Heading` in the file. If a file has no heading, the file name is used.
 
+Optional frontmatter can set the post mood and background. Put background images under `public`, then reference them with a leading `/`.
+
+```md
+---
+mood: 清醒
+context: thinking with clouds and climate
+background: /blog-backgrounds/clouds.jpg
+---
+
+# Article title
+```
+
+If `background` is missing, the article falls back to the mood color. If both are missing, it uses the default site theme.
+
 ```bash
 bun run build
 ```

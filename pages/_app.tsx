@@ -22,11 +22,27 @@ const snapshotCurrentTheme = () => {
 
   const styles = window.getComputedStyle(frame);
   const root = document.documentElement;
+  const backgroundImage =
+    styles.getPropertyValue("--site-background-image").trim() || "none";
+  const hasBackgroundImage =
+    frame.getAttribute("data-has-background-image") === "true" &&
+    backgroundImage !== "none";
 
   root.style.setProperty(
     "--blog-transition-background",
     styles.backgroundColor,
   );
+  root.style.setProperty(
+    "--blog-transition-background-image",
+    hasBackgroundImage ? backgroundImage : "none",
+  );
+  root.style.setProperty(
+    "--blog-transition-background-image-opacity",
+    hasBackgroundImage ? "0.34" : "0",
+  );
+  root.style.setProperty("--blog-transition-background-position", "center");
+  root.style.setProperty("--blog-transition-background-repeat", "no-repeat");
+  root.style.setProperty("--blog-transition-background-size", "cover");
   root.style.setProperty("--blog-transition-foreground", styles.color);
 };
 

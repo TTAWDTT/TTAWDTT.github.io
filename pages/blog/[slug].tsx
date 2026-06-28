@@ -17,10 +17,10 @@ type PostPageProps = {
 };
 
 const moodThemes = [
-  { key: "restless", names: ["浮躁", "焦虑"] },
-  { key: "still", names: ["停顿", "说明"] },
-  { key: "clear", names: ["清醒", "平静"] },
-  { key: "drift", names: ["漂移", "散乱"] },
+  { key: "restless", names: ["浮躁", "焦虑", "发散", "摇晃"] },
+  { key: "still", names: ["停顿", "说明", "安静", "沉默"] },
+  { key: "clear", names: ["清醒", "平静", "观察", "推演"] },
+  { key: "drift", names: ["漂移", "散乱", "游离", "梦"] },
 ];
 
 function getMoodTheme(mood?: string) {
@@ -30,8 +30,10 @@ function getMoodTheme(mood?: string) {
 }
 
 export default function PostPage({ post, posts }: PostPageProps) {
+  const moodTheme = post.backgroundImage ? undefined : getMoodTheme(post.mood);
+
   return (
-    <DefaultLayout moodTheme={getMoodTheme(post.mood)}>
+    <DefaultLayout backgroundImage={post.backgroundImage} moodTheme={moodTheme}>
       <BlogShell activeSlug={post.slug} posts={posts} toc={post.toc}>
         <article className="blog-article">
           <h1 className="blog-article__title">{post.title}</h1>

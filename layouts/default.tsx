@@ -1,18 +1,30 @@
+import type { CSSProperties } from "react";
+
 import { Head } from "./head";
 
 import { Navbar } from "@/components/navbar";
 
 export default function DefaultLayout({
+  backgroundImage,
   children,
   moodTheme,
 }: {
+  backgroundImage?: string | null;
   children: React.ReactNode;
   moodTheme?: string;
 }) {
+  const style = backgroundImage
+    ? ({
+        "--site-background-image": `url("${backgroundImage}")`,
+      } as CSSProperties)
+    : undefined;
+
   return (
     <div
       className="site-frame relative flex min-h-screen flex-col"
+      data-has-background-image={backgroundImage ? "true" : undefined}
       data-mood-theme={moodTheme}
+      style={style}
     >
       <Head />
       <Navbar />

@@ -9,6 +9,7 @@ export type BlogPost = {
   toc: BlogHeading[];
   dateLabel: string;
   distanceLabel: string;
+  backgroundImage: string | null;
   mood?: string;
   context?: string;
   tags: string[];
@@ -88,6 +89,7 @@ export function getBlogPost(slug: string): BlogPost {
     toc: rendered.toc,
     dateLabel: postDate.fullLabel,
     distanceLabel: postDate.distanceLabel,
+    backgroundImage: getPostBackgroundImage(attributes.background),
     mood: attributes.mood,
     context: attributes.context,
     tags: parseTags(attributes.tags),
@@ -219,6 +221,20 @@ function parseTags(value?: string) {
     .split(",")
     .map((tag) => tag.trim())
     .filter(Boolean);
+}
+
+function getPostBackgroundImage(value?: string) {
+  const background = value?.trim();
+
+  if (
+    !background ||
+    !isSafeImageSrc(background) ||
+    /["'()\\]/.test(background)
+  ) {
+    return null;
+  }
+
+  return background;
 }
 
 function unescapeMarkdownPunctuation(value: string) {
