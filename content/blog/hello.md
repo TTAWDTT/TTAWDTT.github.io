@@ -3,6 +3,7 @@ date: 2026-06-19
 mood: 说明
 context: first note for the archive
 tags: 说明
+background: /blog-backgrounds/5.png
 ---
 
 # 一个简短的说明
@@ -12,3 +13,5 @@ tags: 说明
 如果你在没有任何宣传的情况下看到了这个博客站，祝贺你，你得以查阅罗臻最真实的处境与解决方法。
 
 希望我能以这种方式获得更加理性的思考与反省。
+
+最近在看反叛的鲁鲁修。
