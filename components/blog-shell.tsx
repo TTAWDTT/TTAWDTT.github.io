@@ -1,6 +1,7 @@
 import type { BlogHeading, BlogPostMeta } from "@/lib/blog";
 
 import {
+  useEffect,
   useLayoutEffect,
   useState,
   type CSSProperties,
@@ -31,6 +32,7 @@ export function BlogShell({
   const [isCollapsed, setIsCollapsed] = useState(
     () => cachedSidebarCollapsed ?? false,
   );
+  const [activeHeadingId, setActiveHeadingId] = useState(toc[0]?.id);
   const hasToc = toc.length > 0;
   const layoutStyle = {
     "--blog-sidebar-width": isCollapsed ? "4.5rem" : "15rem",
@@ -64,6 +66,40 @@ export function BlogShell({
       return next;
     });
   };
+
+  useEffect(() => {
+    if (!hasToc) {
+      return;
+    }
+
+    setActiveHeadingId(toc[0]?.id);
+
+    const headings = toc
+      .map((heading) => document.getElementById(heading.id))
+      .filter((heading): heading is HTMLElement => Boolean(heading));
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visibleHeading = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
+          .at(0);
+
+        if (visibleHeading?.target.id) {
+          setActiveHeadingId(visibleHeading.target.id);
+        }
+      },
+      {
+        root: document.querySelector(".blog-main__scroll"),
+        rootMargin: "-18% 0px -70% 0px",
+        threshold: 0,
+      },
+    );
+
+    headings.forEach((heading) => observer.observe(heading));
+
+    return () => observer.disconnect();
+  }, [hasToc, toc]);
 
   return (
     <section
@@ -144,6 +180,7 @@ export function BlogShell({
                 className={clsx(
                   "blog-toc__item",
                   heading.level > 2 && "blog-toc__item--nested",
+                  heading.id === activeHeadingId && "blog-toc__item--active",
                 )}
                 href={`#${heading.id}`}
               >

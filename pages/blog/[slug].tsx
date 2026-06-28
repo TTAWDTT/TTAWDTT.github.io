@@ -8,6 +8,7 @@ import {
   type BlogPostMeta,
 } from "@/lib/blog";
 import { BlogShell } from "@/components/blog-shell";
+import { SmoothLink } from "@/components/smooth-link";
 import DefaultLayout from "@/layouts/default";
 
 type PostPageProps = {
@@ -21,10 +22,26 @@ export default function PostPage({ post, posts }: PostPageProps) {
       <BlogShell activeSlug={post.slug} posts={posts} toc={post.toc}>
         <article className="blog-article">
           <h1 className="blog-article__title">{post.title}</h1>
+          <div className="blog-article__meta">
+            <time>{post.dateLabel}</time>
+            <span>{post.distanceLabel}</span>
+            {post.mood ? <span>{post.mood}</span> : null}
+            {post.context ? <span>{post.context}</span> : null}
+          </div>
+          {post.tags.length ? (
+            <div className="blog-article__tags">
+              {post.tags.map((tag) => (
+                <span key={tag}>{tag}</span>
+              ))}
+            </div>
+          ) : null}
           <div
             dangerouslySetInnerHTML={{ __html: post.html }}
             className="blog-content"
           />
+          <SmoothLink className="blog-article__back" href="/blog">
+            ← 回到 {post.year} 的所有记录
+          </SmoothLink>
         </article>
       </BlogShell>
     </DefaultLayout>

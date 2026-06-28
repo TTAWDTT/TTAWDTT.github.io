@@ -1,3 +1,10 @@
+---
+date: 2026-06-19
+mood: 说明
+context: first note for the archive
+tags: 说明
+---
+
 # 一个简短的说明
 
 阿西吧，之后就拿来写写日记吧。

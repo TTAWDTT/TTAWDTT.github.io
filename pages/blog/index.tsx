@@ -3,9 +3,11 @@ import type { GetStaticProps } from "next";
 import { BlogShell } from "@/components/blog-shell";
 import { SmoothLink } from "@/components/smooth-link";
 import { getBlogPosts, type BlogPostMeta } from "@/lib/blog";
+import { pickDailyLine } from "@/lib/site-lines";
 import DefaultLayout from "@/layouts/default";
 
 type BlogPageProps = {
+  dailyLine: string;
   posts: BlogPostMeta[];
 };
 
@@ -16,7 +18,7 @@ const groupPostsByYear = (posts: BlogPostMeta[]) =>
     return groups;
   }, {});
 
-export default function BlogPage({ posts }: BlogPageProps) {
+export default function BlogPage({ dailyLine, posts }: BlogPageProps) {
   const postsByYear = groupPostsByYear(posts);
   const years = Object.keys(postsByYear).sort((a, b) => Number(b) - Number(a));
 
@@ -28,6 +30,7 @@ export default function BlogPage({ posts }: BlogPageProps) {
             <div>
               <h1>Archives</h1>
               <p>目前共计 {posts.length} 篇日志。</p>
+              <blockquote>{dailyLine}</blockquote>
             </div>
           </header>
 
@@ -43,11 +46,18 @@ export default function BlogPage({ posts }: BlogPageProps) {
                         className="blog-archive__item"
                         href={`/blog/${post.slug}`}
                       >
+                        <span className="blog-archive__dot" />
                         <time className="blog-archive__date">
                           {post.dateLabel}
                         </time>
-                        <span className="blog-archive__title">
-                          {post.title}
+                        <span className="blog-archive__body">
+                          <span className="blog-archive__title">
+                            {post.title}
+                          </span>
+                          <span className="blog-archive__meta">
+                            {post.distanceLabel}
+                            {post.mood ? ` / ${post.mood}` : ""}
+                          </span>
                         </span>
                       </SmoothLink>
                     ))}
@@ -70,6 +80,7 @@ export default function BlogPage({ posts }: BlogPageProps) {
 export const getStaticProps: GetStaticProps<BlogPageProps> = async () => {
   return {
     props: {
+      dailyLine: pickDailyLine(),
       posts: getBlogPosts(),
     },
   };

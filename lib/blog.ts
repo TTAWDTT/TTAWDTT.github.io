@@ -7,6 +7,12 @@ export type BlogPost = {
   excerpt: string;
   html: string;
   toc: BlogHeading[];
+  dateLabel: string;
+  distanceLabel: string;
+  mood?: string;
+  context?: string;
+  tags: string[];
+  year: string;
 };
 
 export type BlogHeading = {
@@ -17,8 +23,14 @@ export type BlogHeading = {
 
 export type BlogPostMeta = Pick<BlogPost, "slug" | "title" | "excerpt"> & {
   dateLabel: string;
+  distanceLabel: string;
+  mood?: string;
+  context?: string;
+  tags: string[];
   year: string;
 };
+
+type Frontmatter = Record<string, string>;
 
 const blogDirectory = path.join(process.cwd(), "content", "blog");
 
@@ -37,14 +49,18 @@ export function getBlogSlugs() {
 export function getBlogPosts(): BlogPostMeta[] {
   return getBlogSlugs()
     .map((slug) => {
-      const markdown = stripFrontmatter(readPost(slug));
-      const postDate = getPostDate(slug);
+      const { attributes, body } = parseFrontmatter(readPost(slug));
+      const postDate = getPostDate(slug, attributes.date);
 
       return {
         slug,
-        title: getPostTitle(markdown, slug),
-        excerpt: getPostExcerpt(markdown),
+        title: getPostTitle(body, slug),
+        excerpt: getPostExcerpt(body),
         dateLabel: postDate.label,
+        distanceLabel: postDate.distanceLabel,
+        mood: attributes.mood,
+        context: attributes.context,
+        tags: parseTags(attributes.tags),
         year: postDate.year,
       };
     })
@@ -60,15 +76,22 @@ export function getBlogPosts(): BlogPostMeta[] {
 }
 
 export function getBlogPost(slug: string): BlogPost {
-  const markdown = stripFrontmatter(readPost(slug));
-  const rendered = markdownToHtml(stripTitleHeading(markdown));
+  const { attributes, body } = parseFrontmatter(readPost(slug));
+  const postDate = getPostDate(slug, attributes.date);
+  const rendered = markdownToHtml(stripTitleHeading(body));
 
   return {
     slug,
-    title: getPostTitle(markdown, slug),
-    excerpt: getPostExcerpt(markdown),
+    title: getPostTitle(body, slug),
+    excerpt: getPostExcerpt(body),
     html: rendered.html,
     toc: rendered.toc,
+    dateLabel: postDate.fullLabel,
+    distanceLabel: postDate.distanceLabel,
+    mood: attributes.mood,
+    context: attributes.context,
+    tags: parseTags(attributes.tags),
+    year: postDate.year,
   };
 }
 
@@ -83,8 +106,31 @@ function readPost(slug: string) {
   }
 }
 
-function stripFrontmatter(markdown: string) {
-  return markdown.replace(/^---\s*\n[\s\S]*?\n---\s*\n?/, "");
+function parseFrontmatter(markdown: string): {
+  attributes: Frontmatter;
+  body: string;
+} {
+  const match = markdown.match(/^---\s*\n([\s\S]*?)\n---\s*\n?/);
+
+  if (!match) {
+    return { attributes: {}, body: markdown };
+  }
+
+  const attributes = match[1]
+    .split(/\r?\n/)
+    .reduce<Frontmatter>((frontmatter, line) => {
+      const item = line.match(/^([A-Za-z][\w-]*)\s*:\s*(.*)$/);
+
+      if (!item) {
+        return frontmatter;
+      }
+
+      frontmatter[item[1]] = item[2].replace(/^["']|["']$/g, "").trim();
+
+      return frontmatter;
+    }, {});
+
+  return { attributes, body: markdown.slice(match[0].length) };
 }
 
 function stripTitleHeading(markdown: string) {
@@ -116,25 +162,63 @@ function getPostExcerpt(markdown: string) {
   return plainText || "暂无摘要。";
 }
 
-function getPostDate(slug: string) {
+function getPostDate(slug: string, explicitDate?: string) {
+  const parsedDate = explicitDate ? new Date(`${explicitDate}T00:00:00`) : null;
+
+  if (parsedDate && !Number.isNaN(parsedDate.getTime())) {
+    return formatPostDate(parsedDate);
+  }
+
   const slugDate = slug.match(/^(\d{1,2})-(\d{1,2})$/);
 
   if (slugDate) {
-    return {
-      label: `${slugDate[1].padStart(2, "0")}-${slugDate[2].padStart(2, "0")}`,
-      year: "2026",
-    };
+    return formatPostDate(
+      new Date(2026, Number(slugDate[1]) - 1, Number(slugDate[2])),
+    );
   }
 
   const filePath = path.join(blogDirectory, `${slug}.md`);
   const modifiedAt = fs.statSync(filePath).mtime;
 
+  return formatPostDate(modifiedAt);
+}
+
+function formatPostDate(date: Date) {
+  const today = new Date();
+  const startOfToday = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+  );
+  const startOfDate = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+  );
+  const distance = Math.max(
+    0,
+    Math.round((startOfToday.getTime() - startOfDate.getTime()) / 86_400_000),
+  );
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
   return {
-    label: `${String(modifiedAt.getMonth() + 1).padStart(2, "0")}-${String(
-      modifiedAt.getDate(),
-    ).padStart(2, "0")}`,
-    year: String(modifiedAt.getFullYear()),
+    distanceLabel: distance === 0 ? "今日" : `距今 ${distance} 日`,
+    fullLabel: `${date.getFullYear()}.${month}.${day}`,
+    label: `${month}-${day}`,
+    year: String(date.getFullYear()),
   };
+}
+
+function parseTags(value?: string) {
+  if (!value) {
+    return [];
+  }
+
+  return value
+    .split(",")
+    .map((tag) => tag.trim())
+    .filter(Boolean);
 }
 
 function unescapeMarkdownPunctuation(value: string) {
@@ -306,7 +390,7 @@ function markdownToHtml(markdown: string) {
       const id = `heading-${++headingIndex}`;
       const headingText = plainInlineText(heading[2]);
 
-      if (level >= 2) {
+      if (level >= 2 && headingText) {
         toc.push({ id, level, text: headingText });
       }
 
