@@ -16,7 +16,7 @@ export const Navbar = () => {
     href === "/" ? router.pathname === "/" : router.pathname.startsWith(href);
 
   return (
-    <nav className="sticky top-0 z-40 w-full border-b border-separator bg-background/85 shadow-[0_1px_0_color-mix(in_oklch,var(--foreground)_5%,transparent)] backdrop-blur-lg">
+    <nav className="sticky top-0 z-40 w-full border-b border-separator bg-background shadow-[0_1px_0_color-mix(in_oklch,var(--foreground)_7%,transparent)]">
       <header className="mx-auto flex h-16 max-w-[1280px] items-center justify-between gap-4 px-4 sm:px-6">
         <div className="flex items-center gap-4">
           <SmoothLink className="brand-link flex items-center gap-1" href="/">
