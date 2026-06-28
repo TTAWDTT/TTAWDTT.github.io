@@ -13,12 +13,30 @@ const scrollBlogMainToTop = () => {
   document.querySelector(".blog-main__scroll")?.scrollTo(0, 0);
 };
 
+const snapshotCurrentTheme = () => {
+  const frame = document.querySelector(".site-frame");
+
+  if (!frame) {
+    return;
+  }
+
+  const styles = window.getComputedStyle(frame);
+  const root = document.documentElement;
+
+  root.style.setProperty(
+    "--blog-transition-background",
+    styles.backgroundColor,
+  );
+  root.style.setProperty("--blog-transition-foreground", styles.color);
+};
+
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
 
   useEffect(() => {
     const handleStart = (url: string) => {
       if (isBlogRoute(url) && isBlogRoute(router.asPath)) {
+        snapshotCurrentTheme();
         document.documentElement.dataset.blogTransition = "leaving";
       }
     };
@@ -35,7 +53,7 @@ export default function App({ Component, pageProps }: AppProps) {
 
       window.setTimeout(() => {
         delete document.documentElement.dataset.blogTransition;
-      }, 180);
+      }, 760);
     };
 
     const handleError = () => {
