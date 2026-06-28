@@ -16,6 +16,7 @@ import { SmoothLink } from "@/components/smooth-link";
 type BlogShellProps = {
   posts: BlogPostMeta[];
   activeSlug?: string;
+  style?: CSSProperties;
   toc?: BlogHeading[];
   children: ReactNode;
 };
@@ -26,6 +27,7 @@ let cachedSidebarCollapsed: boolean | null = null;
 export function BlogShell({
   posts,
   activeSlug,
+  style,
   toc = [],
   children,
 }: BlogShellProps) {
@@ -35,6 +37,7 @@ export function BlogShell({
   const [activeHeadingId, setActiveHeadingId] = useState(toc[0]?.id);
   const hasToc = toc.length > 0;
   const layoutStyle = {
+    ...style,
     "--blog-sidebar-width": isCollapsed ? "4.5rem" : "15rem",
   } as CSSProperties;
 
