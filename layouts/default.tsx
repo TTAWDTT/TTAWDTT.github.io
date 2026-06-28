@@ -4,11 +4,16 @@ import { Navbar } from "@/components/navbar";
 
 export default function DefaultLayout({
   children,
+  moodTheme,
 }: {
   children: React.ReactNode;
+  moodTheme?: string;
 }) {
   return (
-    <div className="relative flex min-h-screen flex-col">
+    <div
+      className="site-frame relative flex min-h-screen flex-col"
+      data-mood-theme={moodTheme}
+    >
       <Head />
       <Navbar />
       <main className="container mx-auto max-w-7xl flex-grow px-6 pt-16">

@@ -1,5 +1,4 @@
 import type { GetStaticPaths, GetStaticProps } from "next";
-import type { CSSProperties } from "react";
 
 import {
   getBlogPost,
@@ -17,44 +16,23 @@ type PostPageProps = {
   posts: BlogPostMeta[];
 };
 
-const moodPalettes = [
-  {
-    names: ["浮躁", "焦虑"],
-    background: "oklch(0.972 0.018 32)",
-  },
-  {
-    names: ["停顿", "说明"],
-    background: "oklch(0.976 0.012 86)",
-  },
-  {
-    names: ["清醒", "平静"],
-    background: "oklch(0.976 0.012 210)",
-  },
-  {
-    names: ["漂移", "散乱"],
-    background: "oklch(0.974 0.014 302)",
-  },
+const moodThemes = [
+  { key: "restless", names: ["浮躁", "焦虑"] },
+  { key: "still", names: ["停顿", "说明"] },
+  { key: "clear", names: ["清醒", "平静"] },
+  { key: "drift", names: ["漂移", "散乱"] },
 ];
 
-function getMoodStyle(mood?: string) {
-  const palette = moodPalettes.find(({ names }) =>
+function getMoodTheme(mood?: string) {
+  return moodThemes.find(({ names }) =>
     names.some((name) => mood?.includes(name)),
-  );
-
-  return {
-    "--blog-mood-bg": palette?.background ?? "transparent",
-  } as CSSProperties;
+  )?.key;
 }
 
 export default function PostPage({ post, posts }: PostPageProps) {
   return (
-    <DefaultLayout>
-      <BlogShell
-        activeSlug={post.slug}
-        posts={posts}
-        style={getMoodStyle(post.mood)}
-        toc={post.toc}
-      >
+    <DefaultLayout moodTheme={getMoodTheme(post.mood)}>
+      <BlogShell activeSlug={post.slug} posts={posts} toc={post.toc}>
         <article className="blog-article">
           <h1 className="blog-article__title">{post.title}</h1>
           <div className="blog-article__meta">
