@@ -9,6 +9,10 @@ import "@/styles/globals.css";
 const isBlogRoute = (path: string) =>
   path === "/blog" || path.startsWith("/blog/");
 
+const scrollBlogMainToTop = () => {
+  document.querySelector(".blog-main__scroll")?.scrollTo(0, 0);
+};
+
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
 
@@ -26,7 +30,7 @@ export default function App({ Component, pageProps }: AppProps) {
         return;
       }
 
-      window.scrollTo(0, 0);
+      scrollBlogMainToTop();
       document.documentElement.dataset.blogTransition = "entering";
 
       window.setTimeout(() => {

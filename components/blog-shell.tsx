@@ -1,4 +1,4 @@
-import type { BlogPostMeta } from "@/lib/blog";
+import type { BlogHeading, BlogPostMeta } from "@/lib/blog";
 
 import {
   useLayoutEffect,
@@ -15,16 +15,23 @@ import { SmoothLink } from "@/components/smooth-link";
 type BlogShellProps = {
   posts: BlogPostMeta[];
   activeSlug?: string;
+  toc?: BlogHeading[];
   children: ReactNode;
 };
 
 const storageKey = "ttawdtt-blog-sidebar-collapsed";
 let cachedSidebarCollapsed: boolean | null = null;
 
-export function BlogShell({ posts, activeSlug, children }: BlogShellProps) {
+export function BlogShell({
+  posts,
+  activeSlug,
+  toc = [],
+  children,
+}: BlogShellProps) {
   const [isCollapsed, setIsCollapsed] = useState(
     () => cachedSidebarCollapsed ?? false,
   );
+  const hasToc = toc.length > 0;
   const layoutStyle = {
     "--blog-sidebar-width": isCollapsed ? "4.5rem" : "15rem",
   } as CSSProperties;
@@ -34,11 +41,17 @@ export function BlogShell({ posts, activeSlug, children }: BlogShellProps) {
       return;
     }
 
+    document.documentElement.dataset.blogLayout = "fixed";
+
     if (cachedSidebarCollapsed === null) {
       cachedSidebarCollapsed = localStorage.getItem(storageKey) === "true";
     }
 
     setIsCollapsed(cachedSidebarCollapsed);
+
+    return () => {
+      delete document.documentElement.dataset.blogLayout;
+    };
   }, []);
 
   const toggleSidebar = () => {
@@ -54,7 +67,11 @@ export function BlogShell({ posts, activeSlug, children }: BlogShellProps) {
 
   return (
     <section
-      className={clsx("blog-shell", isCollapsed && "blog-shell--collapsed")}
+      className={clsx(
+        "blog-shell",
+        isCollapsed && "blog-shell--collapsed",
+        hasToc && "blog-shell--with-toc",
+      )}
       style={layoutStyle}
     >
       <aside aria-label="Blog navigation" className="blog-sidebar">
@@ -113,7 +130,29 @@ export function BlogShell({ posts, activeSlug, children }: BlogShellProps) {
         </nav>
       </aside>
 
-      <div className="blog-main">{children}</div>
+      <main className="blog-main">
+        <div className="blog-main__scroll">{children}</div>
+      </main>
+
+      {hasToc ? (
+        <aside aria-label="Article table of contents" className="blog-toc">
+          <p className="blog-toc__title">目录</p>
+          <nav className="blog-toc__nav">
+            {toc.map((heading) => (
+              <a
+                key={heading.id}
+                className={clsx(
+                  "blog-toc__item",
+                  heading.level > 2 && "blog-toc__item--nested",
+                )}
+                href={`#${heading.id}`}
+              >
+                {heading.text}
+              </a>
+            ))}
+          </nav>
+        </aside>
+      ) : null}
     </section>
   );
 }

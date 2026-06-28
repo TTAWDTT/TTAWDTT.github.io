@@ -6,6 +6,13 @@ export type BlogPost = {
   title: string;
   excerpt: string;
   html: string;
+  toc: BlogHeading[];
+};
+
+export type BlogHeading = {
+  id: string;
+  level: number;
+  text: string;
 };
 
 export type BlogPostMeta = Pick<BlogPost, "slug" | "title" | "excerpt"> & {
@@ -54,12 +61,14 @@ export function getBlogPosts(): BlogPostMeta[] {
 
 export function getBlogPost(slug: string): BlogPost {
   const markdown = stripFrontmatter(readPost(slug));
+  const rendered = markdownToHtml(stripTitleHeading(markdown));
 
   return {
     slug,
     title: getPostTitle(markdown, slug),
     excerpt: getPostExcerpt(markdown),
-    html: markdownToHtml(stripTitleHeading(markdown)),
+    html: rendered.html,
+    toc: rendered.toc,
   };
 }
 
@@ -210,11 +219,13 @@ function renderMarkdownImage(source: string) {
 
 function markdownToHtml(markdown: string) {
   const html: string[] = [];
+  const toc: BlogHeading[] = [];
   const paragraph: string[] = [];
   const list: string[] = [];
   let listTag: "ol" | "ul" = "ul";
   let codeLanguage = "";
   let codeLines: string[] = [];
+  let headingIndex = 0;
 
   const flushParagraph = () => {
     if (paragraph.length === 0) {
@@ -292,8 +303,16 @@ function markdownToHtml(markdown: string) {
       flushParagraph();
       flushList();
       const level = heading[1].length;
+      const id = `heading-${++headingIndex}`;
+      const headingText = plainInlineText(heading[2]);
 
-      html.push(`<h${level}>${formatInline(heading[2])}</h${level}>`);
+      if (level >= 2) {
+        toc.push({ id, level, text: headingText });
+      }
+
+      html.push(
+        `<h${level} id="${id}">${formatInline(heading[2])}</h${level}>`,
+      );
       continue;
     }
 
@@ -341,7 +360,10 @@ function markdownToHtml(markdown: string) {
   flushParagraph();
   flushList();
 
-  return html.join("\n");
+  return {
+    html: html.join("\n"),
+    toc,
+  };
 }
 
 function formatInline(text: string) {
@@ -369,6 +391,14 @@ function formatInline(text: string) {
       /@@CODE(\d+)@@/g,
       (_, codeIndex) => codeSpans[Number(codeIndex)] || "",
     );
+}
+
+function plainInlineText(text: string) {
+  return unescapeMarkdownPunctuation(text)
+    .replace(/!\[([^\]]*)]\([^)]+\)/g, "$1")
+    .replace(/\[([^\]]+)]\([^)]+\)/g, "$1")
+    .replace(/[`*_~<>]/g, "")
+    .trim();
 }
 
 function escapeHtml(value: string) {
