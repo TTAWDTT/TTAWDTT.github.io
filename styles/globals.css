@@ -423,7 +423,7 @@ body::-webkit-scrollbar {
 
 .blog-image[data-orientation="portrait"][data-portrait-pair="true"] {
     display: inline-flex;
-    width: calc(50% - 0.45rem);
+    width: calc(50% - 0.75rem);
     align-items: center;
     justify-content: center;
     vertical-align: middle;

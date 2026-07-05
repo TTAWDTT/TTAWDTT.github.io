@@ -313,9 +313,11 @@ function renderImage({
     return escapeHtml(src);
   }
 
+  const rotationAttribute = getImageRotationAttribute(trimmedSrc);
   const sizeAttributes = [
     width && /^\d{1,5}$/.test(width) ? ` width="${width}"` : "",
     height && /^\d{1,5}$/.test(height) ? ` height="${height}"` : "",
+    rotationAttribute,
   ].join("");
 
   return `<img src="${escapeHtml(trimmedSrc)}" alt="${escapeHtml(
@@ -325,6 +327,87 @@ function renderImage({
 
 function renderBlockImage(source: string) {
   return `<figure class="blog-image">${source}</figure>`;
+}
+
+function getImageRotationAttribute(src: string) {
+  const orientation = getLocalJpegOrientation(src);
+
+  return orientation && orientation >= 5 && orientation <= 8
+    ? ' data-image-rotation="quarter-turn"'
+    : "";
+}
+
+function getLocalJpegOrientation(src: string) {
+  if (!src.startsWith("/") || !/\.jpe?g$/i.test(src)) {
+    return null;
+  }
+
+  const filePath = path.join(process.cwd(), "public", src.slice(1));
+
+  if (!fs.existsSync(filePath)) {
+    return null;
+  }
+
+  const buffer = fs.readFileSync(filePath);
+
+  if (buffer.readUInt16BE(0) !== 0xffd8) {
+    return null;
+  }
+
+  let offset = 2;
+
+  while (offset + 4 < buffer.length) {
+    if (buffer[offset] !== 0xff) {
+      break;
+    }
+
+    const marker = buffer[offset + 1];
+    const length = buffer.readUInt16BE(offset + 2);
+
+    if (marker === 0xe1) {
+      return readExifOrientation(
+        buffer.subarray(offset + 4, offset + 2 + length),
+      );
+    }
+
+    offset += 2 + length;
+  }
+
+  return null;
+}
+
+function readExifOrientation(exif: Buffer) {
+  if (exif.toString("ascii", 0, 6) !== "Exif\0\0") {
+    return null;
+  }
+
+  const tiffOffset = 6;
+  const byteOrder = exif.toString("ascii", tiffOffset, tiffOffset + 2);
+  const littleEndian = byteOrder === "II";
+  const readUInt16 = littleEndian
+    ? (offset: number) => exif.readUInt16LE(offset)
+    : (offset: number) => exif.readUInt16BE(offset);
+  const readUInt32 = littleEndian
+    ? (offset: number) => exif.readUInt32LE(offset)
+    : (offset: number) => exif.readUInt32BE(offset);
+
+  if (byteOrder !== "II" && byteOrder !== "MM") {
+    return null;
+  }
+
+  const firstIfdOffset = tiffOffset + readUInt32(tiffOffset + 4);
+  const entryCount = readUInt16(firstIfdOffset);
+
+  for (let index = 0; index < entryCount; index += 1) {
+    const entryOffset = firstIfdOffset + 2 + index * 12;
+    const tag = readUInt16(entryOffset);
+
+    if (tag === 0x0112) {
+      return readUInt16(entryOffset + 8);
+    }
+  }
+
+  return null;
 }
 
 function renderHtmlImage(source: string) {
