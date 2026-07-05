@@ -128,17 +128,16 @@ export function BlogShell({
       figures.forEach((figure) => {
         const image = figure.querySelector("img");
         const isQuarterTurn = image?.dataset.imageRotation === "quarter-turn";
-        const renderedWidth = isQuarterTurn
-          ? image?.naturalHeight
-          : image?.naturalWidth;
-        const renderedHeight = isQuarterTurn
-          ? image?.naturalWidth
-          : image?.naturalHeight;
+        const naturalWidth = image?.naturalWidth || 0;
+        const naturalHeight = image?.naturalHeight || 0;
+        const naturalRatio =
+          naturalWidth > 0 ? naturalHeight / naturalWidth : 0;
+        const rotatedRatio =
+          isQuarterTurn && naturalHeight > 0 ? naturalWidth / naturalHeight : 0;
         const isPortrait =
-          renderedWidth &&
-          renderedHeight &&
-          renderedWidth > 0 &&
-          renderedHeight / renderedWidth >= 1.12;
+          naturalWidth > 0 &&
+          naturalHeight > 0 &&
+          (naturalRatio >= 1.12 || rotatedRatio >= 1.12);
 
         delete figure.dataset.orientation;
         delete figure.dataset.portraitPair;
@@ -146,7 +145,7 @@ export function BlogShell({
         if (isPortrait) {
           figure.dataset.orientation = "portrait";
           portraitFigures.add(figure);
-        } else if (renderedWidth) {
+        } else if (naturalWidth) {
           figure.dataset.orientation = "landscape";
         }
       });
