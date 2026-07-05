@@ -34,10 +34,19 @@ export default function PostPage({ post, posts }: PostPageProps) {
 
   return (
     <DefaultLayout backgroundImage={post.backgroundImage} moodTheme={moodTheme}>
-      <BlogShell activeSlug={post.slug} posts={posts} toc={post.toc}>
-        <article className="blog-article">
+      <BlogShell
+        activeCategoryKey={post.category.key}
+        activeSlug={post.slug}
+        posts={posts}
+        toc={post.toc}
+      >
+        <article
+          className="blog-article"
+          data-blog-category={post.category.key}
+        >
           <h1 className="blog-article__title">{post.title}</h1>
           <div className="blog-article__meta">
+            <span>{post.category.label}</span>
             <time>{post.dateLabel}</time>
             <span>{post.distanceLabel}</span>
             {post.mood ? <span>{post.mood}</span> : null}
@@ -47,8 +56,11 @@ export default function PostPage({ post, posts }: PostPageProps) {
             dangerouslySetInnerHTML={{ __html: post.html }}
             className="blog-content"
           />
-          <SmoothLink className="blog-article__back" href="/blog">
-            ← 回到 {post.year} 的所有记录
+          <SmoothLink
+            className="blog-article__back"
+            href={`/blog/category/${post.category.key}`}
+          >
+            ← 回到 {post.category.label}
           </SmoothLink>
         </article>
       </BlogShell>

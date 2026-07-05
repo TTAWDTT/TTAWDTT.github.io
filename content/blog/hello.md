@@ -1,5 +1,6 @@
 ---
 date: 2026-06-19
+category: 日记
 mood: 说明
 context: first note for the archive
 tags: 说明

@@ -1,12 +1,15 @@
 import fs from "fs";
 import path from "path";
 
+import { blogCategories, type BlogCategory } from "@/lib/blog-categories";
+
 export type BlogPost = {
   slug: string;
   title: string;
   excerpt: string;
   html: string;
   toc: BlogHeading[];
+  category: BlogCategory;
   dateLabel: string;
   distanceLabel: string;
   backgroundImage: string | null;
@@ -23,6 +26,7 @@ export type BlogHeading = {
 };
 
 export type BlogPostMeta = Pick<BlogPost, "slug" | "title" | "excerpt"> & {
+  category: BlogCategory;
   dateLabel: string;
   distanceLabel: string;
   mood?: string;
@@ -52,16 +56,18 @@ export function getBlogPosts(): BlogPostMeta[] {
     .map((slug) => {
       const { attributes, body } = parseFrontmatter(readPost(slug));
       const postDate = getPostDate(slug, attributes.date);
+      const tags = parseTags(attributes.tags);
 
       return {
         slug,
         title: getPostTitle(body, slug),
         excerpt: getPostExcerpt(body),
+        category: getPostCategory(attributes.category, tags),
         dateLabel: postDate.label,
         distanceLabel: postDate.distanceLabel,
         mood: attributes.mood,
         context: attributes.context,
-        tags: parseTags(attributes.tags),
+        tags,
         year: postDate.year,
       };
     })
@@ -80,6 +86,7 @@ export function getBlogPost(slug: string): BlogPost {
   const { attributes, body } = parseFrontmatter(readPost(slug));
   const postDate = getPostDate(slug, attributes.date);
   const rendered = markdownToHtml(stripTitleHeading(body));
+  const tags = parseTags(attributes.tags);
 
   return {
     slug,
@@ -87,12 +94,13 @@ export function getBlogPost(slug: string): BlogPost {
     excerpt: getPostExcerpt(body),
     html: rendered.html,
     toc: rendered.toc,
+    category: getPostCategory(attributes.category, tags),
     dateLabel: postDate.fullLabel,
     distanceLabel: postDate.distanceLabel,
     backgroundImage: getPostBackgroundImage(attributes.background),
     mood: attributes.mood,
     context: attributes.context,
-    tags: parseTags(attributes.tags),
+    tags,
     year: postDate.year,
   };
 }
@@ -223,6 +231,33 @@ function parseTags(value?: string) {
     .filter(Boolean);
 }
 
+function getPostCategory(value: string | undefined, tags: string[]) {
+  const categoryText = value?.trim();
+  const source = [categoryText, ...tags].filter(Boolean).join(" ");
+
+  if (/^(tech|technical|技术)$/i.test(categoryText || "")) {
+    return blogCategories[0];
+  }
+
+  if (/^(diary|journal|日记)$/i.test(categoryText || "")) {
+    return blogCategories[1];
+  }
+
+  if (/^(essay|notes|随笔)$/i.test(categoryText || "")) {
+    return blogCategories[2];
+  }
+
+  if (/技术|代码|模型|研究|气象|启发式|工具|学业/.test(source)) {
+    return blogCategories[0];
+  }
+
+  if (/日记|假期|出差|复习|生活/.test(source)) {
+    return blogCategories[1];
+  }
+
+  return blogCategories[2];
+}
+
 function getPostBackgroundImage(value?: string) {
   const background = value?.trim();
 
@@ -286,6 +321,10 @@ function renderImage({
   return `<img src="${escapeHtml(trimmedSrc)}" alt="${escapeHtml(
     alt,
   )}"${sizeAttributes} loading="lazy" />`;
+}
+
+function renderBlockImage(source: string) {
+  return `<figure class="blog-image">${source}</figure>`;
 }
 
 function renderHtmlImage(source: string) {
@@ -393,7 +432,7 @@ function markdownToHtml(markdown: string) {
     if (blockImage) {
       flushParagraph();
       flushList();
-      html.push(blockImage);
+      html.push(renderBlockImage(blockImage));
       continue;
     }
 

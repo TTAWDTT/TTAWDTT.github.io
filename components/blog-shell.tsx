@@ -12,9 +12,11 @@ import clsx from "clsx";
 
 import { PanelToggleIcon } from "@/components/icons";
 import { SmoothLink } from "@/components/smooth-link";
+import { blogCategories } from "@/lib/blog-categories";
 
 type BlogShellProps = {
   posts: BlogPostMeta[];
+  activeCategoryKey?: string;
   activeSlug?: string;
   toc?: BlogHeading[];
   children: ReactNode;
@@ -24,6 +26,7 @@ const storageKey = "ttawdtt-blog-sidebar-collapsed";
 let cachedSidebarCollapsed: boolean | null = null;
 
 export function BlogShell({
+  activeCategoryKey,
   posts,
   activeSlug,
   toc = [],
@@ -34,6 +37,9 @@ export function BlogShell({
   );
   const [activeHeadingId, setActiveHeadingId] = useState(toc[0]?.id);
   const hasToc = toc.length > 0;
+  const visiblePosts = activeCategoryKey
+    ? posts.filter((post) => post.category.key === activeCategoryKey)
+    : posts;
   const layoutStyle = {
     "--blog-sidebar-width": isCollapsed ? "4.5rem" : "15rem",
   } as CSSProperties;
@@ -101,6 +107,86 @@ export function BlogShell({
     return () => observer.disconnect();
   }, [hasToc, toc]);
 
+  useEffect(() => {
+    const content = document.querySelector(".blog-content");
+
+    if (!content) {
+      return;
+    }
+
+    let frame = 0;
+    const figures = Array.from(
+      content.querySelectorAll<HTMLElement>(".blog-image"),
+    );
+    const images = figures
+      .map((figure) => figure.querySelector("img"))
+      .filter((image): image is HTMLImageElement => Boolean(image));
+
+    const arrangeImages = () => {
+      const portraitFigures = new Set<HTMLElement>();
+
+      figures.forEach((figure) => {
+        const image = figure.querySelector("img");
+        const isPortrait =
+          image &&
+          image.naturalWidth > 0 &&
+          image.naturalHeight / image.naturalWidth >= 1.12;
+
+        delete figure.dataset.orientation;
+        delete figure.dataset.portraitPair;
+
+        if (isPortrait) {
+          figure.dataset.orientation = "portrait";
+          portraitFigures.add(figure);
+        } else if (image?.naturalWidth) {
+          figure.dataset.orientation = "landscape";
+        }
+      });
+
+      let run: HTMLElement[] = [];
+      const flushRun = () => {
+        for (let index = 0; index + 1 < run.length; index += 2) {
+          run[index].dataset.portraitPair = "true";
+          run[index + 1].dataset.portraitPair = "true";
+        }
+
+        run = [];
+      };
+
+      figures.forEach((figure) => {
+        if (portraitFigures.has(figure)) {
+          run.push(figure);
+
+          return;
+        }
+
+        flushRun();
+      });
+      flushRun();
+    };
+
+    const scheduleArrange = () => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(arrangeImages);
+    };
+
+    images.forEach((image) => {
+      if (image.complete) {
+        scheduleArrange();
+      }
+
+      image.addEventListener("load", scheduleArrange);
+    });
+    scheduleArrange();
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      images.forEach((image) => {
+        image.removeEventListener("load", scheduleArrange);
+      });
+    };
+  }, [activeSlug]);
+
   return (
     <section
       className={clsx(
@@ -137,10 +223,12 @@ export function BlogShell({
 
         <nav aria-label="Blog posts" className="blog-sidebar__nav">
           <SmoothLink
-            aria-current={!activeSlug ? "page" : undefined}
+            aria-current={
+              !activeSlug && !activeCategoryKey ? "page" : undefined
+            }
             className={clsx(
               "blog-nav-item group",
-              !activeSlug && "blog-nav-item--active",
+              !activeSlug && !activeCategoryKey && "blog-nav-item--active",
             )}
             href="/blog"
             title="All Posts"
@@ -148,7 +236,32 @@ export function BlogShell({
             <span className="blog-nav-item__dot" />
             <span className="blog-nav-item__label">All Posts</span>
           </SmoothLink>
-          {posts.map((post) => (
+
+          <div aria-label="Blog categories" className="blog-nav-group">
+            {blogCategories.map((category) => (
+              <SmoothLink
+                key={category.key}
+                aria-current={
+                  activeCategoryKey === category.key && !activeSlug
+                    ? "page"
+                    : undefined
+                }
+                className={clsx(
+                  "blog-nav-item blog-nav-item--category group",
+                  activeCategoryKey === category.key &&
+                    !activeSlug &&
+                    "blog-nav-item--active",
+                )}
+                href={`/blog/category/${category.key}`}
+                title={category.label}
+              >
+                <span className="blog-nav-item__dot" />
+                <span className="blog-nav-item__label">{category.label}</span>
+              </SmoothLink>
+            ))}
+          </div>
+
+          {visiblePosts.map((post) => (
             <SmoothLink
               key={post.slug}
               aria-current={post.slug === activeSlug ? "page" : undefined}

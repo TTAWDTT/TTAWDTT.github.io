@@ -1,12 +1,17 @@
-import type { GetStaticProps } from "next";
+import type { GetStaticPaths, GetStaticProps } from "next";
 
 import { BlogShell } from "@/components/blog-shell";
 import { SmoothLink } from "@/components/smooth-link";
-import { blogCategories } from "@/lib/blog-categories";
+import {
+  getBlogCategory,
+  getBlogCategoryPaths,
+  type BlogCategory,
+} from "@/lib/blog-categories";
 import { getBlogPosts, type BlogPostMeta } from "@/lib/blog";
 import DefaultLayout from "@/layouts/default";
 
-type BlogPageProps = {
+type CategoryPageProps = {
+  category: BlogCategory;
   posts: BlogPostMeta[];
 };
 
@@ -17,44 +22,27 @@ const groupPostsByYear = (posts: BlogPostMeta[]) =>
     return groups;
   }, {});
 
-export default function BlogPage({ posts }: BlogPageProps) {
-  const postsByYear = groupPostsByYear(posts);
+export default function CategoryPage({ category, posts }: CategoryPageProps) {
+  const categoryPosts = posts.filter(
+    (post) => post.category.key === category.key,
+  );
+  const postsByYear = groupPostsByYear(categoryPosts);
   const years = Object.keys(postsByYear).sort((a, b) => Number(b) - Number(a));
-  const getCategoryCount = (categoryKey: string) =>
-    posts.filter((post) => post.category.key === categoryKey).length;
 
   return (
     <DefaultLayout>
-      <BlogShell posts={posts}>
-        <section className="blog-index">
+      <BlogShell activeCategoryKey={category.key} posts={posts}>
+        <section className="blog-index" data-blog-category={category.key}>
           <header className="blog-index__header">
             <div>
-              <h1>Archives</h1>
-              <p>目前共计 {posts.length} 篇日志。</p>
+              <h1>{category.label}</h1>
+              <p>
+                {category.description} 共计 {categoryPosts.length} 篇。
+              </p>
             </div>
           </header>
 
-          <div aria-label="Blog categories" className="blog-category-grid">
-            {blogCategories.map((category) => (
-              <SmoothLink
-                key={category.key}
-                className="blog-category-card"
-                href={`/blog/category/${category.key}`}
-              >
-                <span className="blog-category-card__name">
-                  {category.label}
-                </span>
-                <span className="blog-category-card__description">
-                  {category.description}
-                </span>
-                <span className="blog-category-card__count">
-                  {getCategoryCount(category.key)} 篇
-                </span>
-              </SmoothLink>
-            ))}
-          </div>
-
-          {posts.length ? (
+          {categoryPosts.length ? (
             <div className="blog-index__list">
               {years.map((year) => (
                 <section key={year} className="blog-archive">
@@ -81,10 +69,7 @@ export default function BlogPage({ posts }: BlogPageProps) {
               ))}
             </div>
           ) : (
-            <div className="blog-empty">
-              还没有文章。把 Markdown 文件放进{" "}
-              <code className="font-mono">content/blog</code> 后重新构建即可。
-            </div>
+            <div className="blog-empty">这个门类还没有文章。</div>
           )}
         </section>
       </BlogShell>
@@ -92,9 +77,29 @@ export default function BlogPage({ posts }: BlogPageProps) {
   );
 }
 
-export const getStaticProps: GetStaticProps<BlogPageProps> = async () => {
+export const getStaticPaths: GetStaticPaths = async () => {
+  return {
+    paths: getBlogCategoryPaths().map((category) => ({
+      params: { category },
+    })),
+    fallback: false,
+  };
+};
+
+export const getStaticProps: GetStaticProps<CategoryPageProps> = async ({
+  params,
+}) => {
+  const category = getBlogCategory(String(params?.category));
+
+  if (!category) {
+    return {
+      notFound: true,
+    };
+  }
+
   return {
     props: {
+      category,
       posts: getBlogPosts(),
     },
   };

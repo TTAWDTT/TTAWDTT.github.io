@@ -37,6 +37,7 @@ Optional frontmatter can set the post mood and background. Put background images
 
 ```md
 ---
+category: 技术
 mood: 清醒
 context: thinking with clouds and climate
 background: /blog-backgrounds/clouds.jpg
@@ -46,6 +47,14 @@ background: /blog-backgrounds/clouds.jpg
 ```
 
 If `background` is missing, the article falls back to the mood color. If both are missing, it uses the default site theme.
+
+`category` can be `技术`, `日记`, or `随笔`. Category pages are generated at:
+
+```text
+/blog/category/tech
+/blog/category/diary
+/blog/category/essay
+```
 
 ```bash
 bun run build
