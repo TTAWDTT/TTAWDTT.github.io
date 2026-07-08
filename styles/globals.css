@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "@heroui/styles";
+@import "katex/dist/katex.min.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -382,6 +383,28 @@ body::-webkit-scrollbar {
 .blog-content pre code {
     background: transparent;
     padding: 0;
+}
+
+.blog-content .katex {
+    color: var(--foreground);
+    font-size: 1.02em;
+}
+
+.blog-content .katex-display {
+    overflow-x: auto;
+    overflow-y: hidden;
+    margin: 1.35rem 0;
+    padding: 0.2rem 0;
+}
+
+.blog-content .katex-display > .katex {
+    display: inline-block;
+    min-width: max-content;
+}
+
+.blog-content .math-fallback {
+    color: var(--muted);
+    font-family: var(--font-mono);
 }
 
 .blog-content hr {

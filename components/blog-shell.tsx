@@ -137,7 +137,7 @@ export function BlogShell({
         const isPortrait =
           naturalWidth > 0 &&
           naturalHeight > 0 &&
-          (naturalRatio >= 1.12 || rotatedRatio >= 1.12);
+          (naturalRatio > 0.85 || rotatedRatio > 0.85);
 
         delete figure.dataset.orientation;
         delete figure.dataset.portraitPair;

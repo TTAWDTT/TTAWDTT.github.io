@@ -1,6 +1,8 @@
 import fs from "fs";
 import path from "path";
 
+import katex from "katex";
+
 import { blogCategories, type BlogCategory } from "@/lib/blog-categories";
 
 export type BlogPost = {
@@ -447,6 +449,8 @@ function markdownToHtml(markdown: string) {
   let listTag: "ol" | "ul" = "ul";
   let codeLanguage = "";
   let codeLines: string[] = [];
+  let mathDelimiter = "";
+  let mathLines: string[] = [];
   let headingIndex = 0;
 
   const flushParagraph = () => {
@@ -482,8 +486,24 @@ function markdownToHtml(markdown: string) {
     codeLines = [];
   };
 
+  const flushMath = () => {
+    html.push(renderMath(mathLines.join("\n"), true));
+    mathDelimiter = "";
+    mathLines = [];
+  };
+
   for (const rawLine of markdown.replace(/\r\n/g, "\n").split("\n")) {
     const line = rawLine.trimEnd();
+
+    if (mathDelimiter) {
+      if (line.trim() === mathDelimiter) {
+        flushMath();
+      } else {
+        mathLines.push(rawLine);
+      }
+
+      continue;
+    }
 
     if (codeLanguage) {
       if (line.startsWith("```")) {
@@ -495,6 +515,8 @@ function markdownToHtml(markdown: string) {
       continue;
     }
 
+    const trimmedLine = line.trim();
+
     if (line.startsWith("```")) {
       flushParagraph();
       flushList();
@@ -503,7 +525,26 @@ function markdownToHtml(markdown: string) {
       continue;
     }
 
-    if (!line.trim()) {
+    if (trimmedLine === "$$" || trimmedLine === "\\[") {
+      flushParagraph();
+      flushList();
+      mathDelimiter = trimmedLine === "$$" ? "$$" : "\\]";
+      mathLines = [];
+      continue;
+    }
+
+    const inlineDisplayMath =
+      trimmedLine.match(/^\$\$([\s\S]+)\$\$$/) ??
+      trimmedLine.match(/^\\\[([\s\S]+)\\\]$/);
+
+    if (inlineDisplayMath) {
+      flushParagraph();
+      flushList();
+      html.push(renderMath(inlineDisplayMath[1], true));
+      continue;
+    }
+
+    if (!trimmedLine) {
       flushParagraph();
       flushList();
       continue;
@@ -579,6 +620,10 @@ function markdownToHtml(markdown: string) {
     flushCode();
   }
 
+  if (mathDelimiter) {
+    flushMath();
+  }
+
   flushParagraph();
   flushList();
 
@@ -590,16 +635,35 @@ function markdownToHtml(markdown: string) {
 
 function formatInline(text: string) {
   const codeSpans: string[] = [];
-  const encoded = escapeHtml(unescapeMarkdownPunctuation(text)).replace(
-    /`([^`]+)`/g,
-    (_, code) => {
-      codeSpans.push(`<code>${code}</code>`);
+  const mathSpans: string[] = [];
+  const textWithPlaceholders = unescapeMarkdownPunctuation(text)
+    .replace(/`([^`]+)`/g, (_, code) => {
+      codeSpans.push(`<code>${escapeHtml(code)}</code>`);
 
       return `@@CODE${codeSpans.length - 1}@@`;
-    },
-  );
+    })
+    .replace(/\$\$([^$\n]+?)\$\$/g, (_, formula) => {
+      mathSpans.push(renderMath(formula, true));
 
-  return encoded
+      return `@@MATH${mathSpans.length - 1}@@`;
+    })
+    .replace(/\\\[([\s\S]+?)\\\]/g, (_, formula) => {
+      mathSpans.push(renderMath(formula, true));
+
+      return `@@MATH${mathSpans.length - 1}@@`;
+    })
+    .replace(/\\\((.+?)\\\)/g, (_, formula) => {
+      mathSpans.push(renderMath(formula, false));
+
+      return `@@MATH${mathSpans.length - 1}@@`;
+    })
+    .replace(/(^|[^\\$])\$([^$\n]+?)\$/g, (_, prefix, formula) => {
+      mathSpans.push(renderMath(formula, false));
+
+      return `${prefix}@@MATH${mathSpans.length - 1}@@`;
+    });
+
+  return escapeHtml(textWithPlaceholders)
     .replace(
       /!\[([^\]]*)]\(([^)\s]+)(?:\s+&quot;[^&]*&quot;)?\)/g,
       (_, alt, src) => renderImage({ alt, src }),
@@ -612,7 +676,27 @@ function formatInline(text: string) {
     .replace(
       /@@CODE(\d+)@@/g,
       (_, codeIndex) => codeSpans[Number(codeIndex)] || "",
+    )
+    .replace(
+      /@@MATH(\d+)@@/g,
+      (_, mathIndex) => mathSpans[Number(mathIndex)] || "",
     );
+}
+
+function renderMath(formula: string, displayMode: boolean) {
+  try {
+    return katex.renderToString(formula.trim(), {
+      displayMode,
+      output: "html",
+      strict: false,
+      throwOnError: false,
+      trust: false,
+    });
+  } catch {
+    const tag = displayMode ? "div" : "span";
+
+    return `<${tag} class="math-fallback">${escapeHtml(formula)}</${tag}>`;
+  }
 }
 
 function plainInlineText(text: string) {

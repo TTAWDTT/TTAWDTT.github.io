@@ -56,6 +56,8 @@ If `background` is missing, the article falls back to the mood color. If both ar
 /blog/category/essay
 ```
 
+LaTeX is rendered with KaTeX. Inline math can use `$x^2$` or `\(x^2\)`, and display math can use `$$...$$` or `\[...\]`.
+
 ```bash
 bun run build
 ```
