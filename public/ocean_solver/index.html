@@ -451,7 +451,8 @@ function renderCrit(j) {
       `global ${sg.toFixed(4)} °C/yr · Atl ${sa.toFixed(4)} · ` +
       `基线 0.045 → ${bp ? "PASS" : "FAIL"}`);
     const me = d.crit_max_eta ? d.crit_max_eta[0] : null;
-    const cp = d.crit_c_pass ? d.crit_c_pass[0] > 0.5 : null;
+    // no measured value yet → pending, regardless of the (0.0) pass flag
+    const cp = (me != null && d.crit_c_pass) ? d.crit_c_pass[0] > 0.5 : null;
     el("#critC", cp, me == null ? "跑完才有（表格在完成时写盘）"
       : `max ${me.toFixed(2)} m · 看门狗 15 m → ${cp ? "PASS" : "FAIL"}`);
   }).catch(() => el("#critB", null, "分析不可用"));
