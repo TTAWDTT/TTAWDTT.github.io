@@ -204,6 +204,12 @@
         <div><b>判据 b · deepT 趋势 &lt; 0.0225 °C/yr</b><div class="v" id="critB">—</div></div></div>
       <div class="item pend"><span class="ic">◌</span>
         <div><b>判据 c · Med max&#124;eta&#124; &lt; 15 m</b><div class="v" id="critC">—</div></div></div>
+      <div class="item pend"><span class="ic">◌</span>
+        <div><b>判据 d · OHC 趋势 &#124;ZJ/yr&#124; &lt; 2（警告 5）</b><div class="v" id="critD">—</div></div></div>
+      <div class="item pend"><span class="ic">◌</span>
+        <div><b>判据 e · SSS 漂移 &lt; 0.003 psu/yr</b><div class="v" id="critE">—</div></div></div>
+      <div class="item pend"><span class="ic">◌</span>
+        <div><b>判据 f · AMOC 合理性</b><div class="v" id="critF">—</div></div></div>
     </div>
   </section>
   <div class="row2" id="wideCharts"></div>
@@ -459,6 +465,22 @@ function renderCrit(j) {
     const cp = (me != null && c.crit_c_pass) ? c.crit_c_pass[0] > 0.5 : null;
     el("#critC", cp, me == null ? "跑完才有（表格在完成时写盘）"
       : `max ${me.toFixed(2)} m · 看门狗 15 m → ${cp ? "PASS" : "FAIL"}`);
+    // v3: budget-closure + sanity badges
+    const so = c.crit_slope_ohc ? c.crit_slope_ohc[0] : null;
+    const dp = (so != null && c.crit_d_pass) ? c.crit_d_pass[0] > 0.5 : null;
+    el("#critD", so == null ? null : dp,
+      so == null ? "数据不足" : `${so >= 0 ? "+" : ""}${so.toFixed(2)} ZJ/yr → ${dp ? "PASS" : "调整中（>2）"}`);
+    const ss = c.crit_slope_sss ? c.crit_slope_sss[0] : null;
+    const ep = (ss != null && c.crit_e_pass) ? c.crit_e_pass[0] > 0.5 : null;
+    el("#critE", ss == null ? null : ep,
+      ss == null ? "数据不足" : `${ss >= 0 ? "+" : ""}${ss.toFixed(5)} psu/yr → ${ep ? "PASS" : "FAIL（需 SSS 通量）"}`);
+    const ar = c.amoc26_ratio ? c.amoc26_ratio[0] : null;
+    const af = c.amoc ? c.amoc[c.amoc.length - 1] : null;
+    const fWarn = (af != null && Math.abs(af) > 25 ? "绝对值>25Sv " : "") +
+      (ar != null && ar < 0.4 ? "26N塌缩" : "");
+    el("#critF", fWarn ? false : (af != null ? true : null),
+      af == null ? "数据不足" : (fWarn ? "⚠ " + fWarn.trim()
+        : `${af.toFixed(1)} Sv · 26N 比 ${ar != null ? ar.toFixed(2) : "—"}`));
   }).catch(() => el("#critB", null, "分析不可用"));
 }
 
